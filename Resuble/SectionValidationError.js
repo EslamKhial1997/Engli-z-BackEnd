@@ -20,7 +20,7 @@ exports.createSectionsValidator = [
     .custom((val) =>
       createClassModel.findOne({ _id: val }).then((e) => {
         if (!e) {
-          return Promise.reject(new Error("Sorry Class is not available"));
+          return Promise.reject(new Error("لايوجد صف"));
         }
       })
     ),

@@ -20,10 +20,12 @@ class FeatureApi {
 
   Sort() {
     if (this.QueryStringApi.sort) {
+      
       const sortby = this.QueryStringApi.sort.split(",").join(" ");
       this.MongooseQueryApi = this.MongooseQueryApi.sort(sortby);
     } else {
-      this.MongooseQueryApi = this.MongooseQueryApi.sort("createdAt");
+      // ترتيب البيانات من الأقدم إلى الأحدث حسب createdAt
+      this.MongooseQueryApi = this.MongooseQueryApi.sort({ createdAt: 1 });
     }
     return this;
   }
