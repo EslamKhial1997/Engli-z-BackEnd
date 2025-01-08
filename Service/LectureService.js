@@ -57,10 +57,14 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
       ...req.body,
     });
 
+    // حفظ المحاضرة
     await newLecture.save();
 
-    // جلب القسم المرتبط بالمحاضرة
-    const populatedLecture = await newLecture.populate("section");
+    // جلب القسم المرتبط بالمحاضرة مع البيانات المعبأة
+    const populatedLecture = await newLecture.populate({
+      path: "section",  // حقل "section" في المحاضرة
+      select: "name description",  // تحديد الحقول التي نريد تعبئتها
+    });
 
     // العثور على المستخدمين المرتبطين بالصف
     const users = await createUsersModel.find({
@@ -86,8 +90,8 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
       })
     );
 
-    // إرسال استجابة عند نجاح العملية
-    res.status(201).json({ status: "Success", data: newLecture });
+    // إعادة المحاضرة المعبأة في الاستجابة
+    res.status(201).json({ status: "Success", data: populatedLecture });
   } catch (error) {
     // معالجة الأخطاء
     console.error(error);
@@ -96,6 +100,7 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
     );
   }
 });
+
 
 exports.getLectures = expressAsyncHandler(async (req, res) => {
   try {

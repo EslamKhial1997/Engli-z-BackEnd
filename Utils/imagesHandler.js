@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const path = require("path");
 const ensureUploadDirExists = (type) => {
-  const dir = `uploads/${type}`; // تأكد من استخدام المسار الصحيح
+  const dir = `../uploads/${type}`; // تأكد من استخدام المسار الصحيح
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -24,7 +24,7 @@ exports.resizeImage = (type) =>
       await sharp(req.file.buffer)
         .resize(1920, 1080)
         .toFormat(imageType)
-        .toFile(`uploads/${type}/${filename}`);
+        .toFile(`../uploads/${type}/${filename}`);
       req.body.image = filename;
     }
     next();
@@ -41,7 +41,7 @@ exports.resizeImageAuth = (type) =>
         .resize(750, 750)
         .toFormat("jpeg")
         .jpeg({ quality: 70 })
-        .toFile(`uploads/${type}/${filename}`);
+        .toFile(`../uploads/${type}/${filename}`);
       req.body.image = filename;
     }
     next();

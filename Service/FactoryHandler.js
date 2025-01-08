@@ -57,18 +57,15 @@ exports.getOneCourse = (Model, populateOpt) =>
   expressAsyncHandler(async (req, res, next) => {
     try {
       let query = await Model.findOneAndUpdate(
-        { user: req.user._id }, 
+        { user: req.user._id },
         {
           $pull: {
             couresItems: {
-              $or: [
-                { seen: 0 }, 
-                { expires: { $lt: Date.now() } }, 
-              ],
+              $or: [{ seen: 0 }, { expires: { $lt: Date.now() } }],
             },
           },
         },
-        { new: true } 
+        { new: true }
       ).exec();
 
       let updatedCourse = await query;
@@ -86,7 +83,7 @@ exports.getOneCourse = (Model, populateOpt) =>
     } catch (error) {
       res.status(401).json({
         status: "Error",
-        msg:"حدث خطأ ما"
+        msg: "حدث خطأ ما",
       });
     }
   });

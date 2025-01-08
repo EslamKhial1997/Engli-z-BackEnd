@@ -55,6 +55,8 @@ createLectures.pre(/^find/, function (next) {
 
   next();
 });
+
+
 const ImageURL = (doc) => {
   if (doc.pdf && !doc.pdf.includes(`${process.env.BASE_URL}/lecture`)) {
     const pdf = `${process.env.BASE_URL}/lecture/${doc.pdf}`;

@@ -7,21 +7,19 @@ const createNotificationsModel = require("../Modules/createNotifiction");
 const FeatureApi = require("../Utils/Feature");
 const createLecturesModel = require("../Modules/createAlecture");
 exports.createSections = expressAsyncHandler(async (req, res) => {
-  // تعيين teacher بناءً على دور المستخدم
   req.body.teacher =
     req.user.role === "teacher" ? req.user._id : req.user.teacher._id;
 
   const classGrade = await createClassModel.findOne({ _id: req.body.class });
   const users = await createUsersModel.find({ grade: classGrade.grade });
 
-  // إنشاء كلاس جديد باستخدام البيانات المرسلة
   const newSection = new createSectionModel({
-    ...req.body, // استخدام req.body بشكل صحيح لتمرير البيانات
+    ...req.body,
   });
   await Promise.all(
     users.map(async (user) => {
       const newNotification = new createNotificationsModel({
-        user: user._id, // تمرير معرف المستخدم
+        user: user._id,
         type: "new-section",
 
         newSection: {
@@ -31,15 +29,17 @@ exports.createSections = expressAsyncHandler(async (req, res) => {
         msg: "تم اضافة فصل جديد",
       });
 
-      // حفظ الإشعار في قاعدة البيانات
       return newNotification.save();
     })
   );
-  // حفظ الكلاس الجديد في قاعدة البيانات
-  await newSection.save();
 
-  // إرسال استجابة عند نجاح العملية
-  res.status(201).json({ msg: "تم اضافة فصل جديد", data: newSection });
+  await newSection.save();
+  const populatedSection = await newSection.populate({
+    path: "class",
+    select: "name",
+  });
+
+  res.status(201).json({ msg: "تم اضافة فصل جديد", data: populatedSection });
 });
 exports.getSections = expressAsyncHandler(async (req, res) => {
   let filter = {};
@@ -59,11 +59,7 @@ exports.getSections = expressAsyncHandler(async (req, res) => {
     .Paginate(countDocs);
 
   const { MongooseQueryApi, PaginateResult } = ApiFeatures;
-
-  // جلب الأقسام
   const sections = await MongooseQueryApi.lean();
-
-  // إلحاق المحاضرات بكل قسم
   const sectionsWithLectures = await Promise.all(
     sections.map(async (ele) => {
       const lectures = await createLecturesModel
