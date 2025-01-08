@@ -39,7 +39,7 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "*");
   next();
 });
-const uploadsPath = path.join(__dirname, "../uploads");
+const uploadsPath = path.join(__dirname, "uploads");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(uploadsPath));
@@ -91,7 +91,7 @@ app.get("*", (req, res) => {
     res.status(404).json({ message: "API endpoint not found" });
   }
 });
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
