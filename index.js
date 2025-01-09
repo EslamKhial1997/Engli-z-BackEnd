@@ -39,7 +39,7 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "*");
   next();
 });
-const uploadsPath = path.join(__dirname, "uploads");
+const uploadsPath = path.join(__dirname, "../uploads");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(uploadsPath));
@@ -60,12 +60,12 @@ app.use(requestIp.mw());
 app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
-app.use("/auth", RoutesGoogleAuth);
+app.use("/", RoutesGoogleAuth);
 app.use("/api/v1/auth", RoutesAuth);
 app.use("/api/v1/users", RoutesUsers);
 app.use("/api/v1/transaction", RoutesTransactions);
 app.use("/api/v1/teacher", RoutesTeachers);
-app.use("/api/v1/class", RoutesClasses);
+app.use("/api/v1/class", RoutesClasses); 
 app.use("/api/v1/section", RoutesSections);
 app.use("/api/v1/lecture", RoutesLectures);
 app.use("/video", RoutesVideo);
@@ -79,20 +79,20 @@ app.use("/api/v1/package", RoutesPackage);
 app.use("/api/v1/notifacation", RoutesNotifacations);
 app.use("/api/v1/pricing", RoutesPricing);
 app.use("/api/v1/cash", RoutesCash);
-app.use(express.static(path.join(__dirname, "build")));
+app.use(express.static(path.join(__dirname, "../build")));
 // app.get("/youtube", (req, res) => {
 //   res.sendFile(path.join(__dirname, "layout", "youtube.html"));
 // });
 
 app.get("*", (req, res) => {
   if (!req.originalUrl.startsWith("/api")) {
-    res.sendFile(path.join(__dirname, "build", "index.html"));
+    res.sendFile(path.join(__dirname, "../build", "index.html"));
   } else {
     res.status(404).json({ message: "API endpoint not found" });
   }
 });
-const PORT = process.env.PORT || 3002;
-const server = app.listen(PORT, () => {
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 

@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 // دالة إرسال الإيميل مع رابط التحقق
 async function sendVerificationEmail(toEmail, verificationToken, firstName) {
-  const verificationLink = `${process.env.BASE_URL}/auth/restNewPassword/${verificationToken}`;
+  const verificationLink = `${process.env.BASE_URL}/newPassword/${verificationToken}`;
 
   const mailOptions = {
     from: process.env.STAMP_USER_NAME,

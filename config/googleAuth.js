@@ -14,13 +14,11 @@ passport.use(
       passReqToCallback: true, // تمرير req إلى دالة التحقق
     },
     async (req, accessToken, refreshToken, profile, done) => {
-      
+      console.log(pofile);
+
       try {
         const clientIp =
-          req.ip ||
-          req.headers["x-forwarded-for"]?.split(",").shift() ||
-          req.connection.remoteAddress;
-
+          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
         // البحث عن المستخدم
         let user = await createUsersModel.findOne({
           $or: [{ googleId: profile.id }, { email: profile.emails[0].value }],
@@ -39,7 +37,7 @@ passport.use(
         } else {
           // تحديث IP إذا كان المستخدم موجودًا
           await createUsersModel.findOneAndUpdate(
-            {},
+            { _id: user._id },
             { ip: clientIp },
             { new: true }
           );

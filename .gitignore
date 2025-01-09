@@ -6,6 +6,8 @@
 /.history
 .pnp.js
 /config.env
+/DengaTech.json
+/teamSolution.json
 # testing
 /coverage
 
