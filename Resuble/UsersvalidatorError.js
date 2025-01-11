@@ -11,16 +11,13 @@ const ApiError = require("./ApiErrors");
 // const createUsersModel = require("../modules/createUsers");
 
 exports.createUsersValidator = [
-  check("firstName")
+  check("name")
     .notEmpty()
-    .withMessage("is required firstName")
+    .withMessage("is required name")
     .custom((val, { req }) => {
       req.body.slug = slugify(val);
       return true;
     }),
-  check("lastName")
-    .notEmpty()
-    .withMessage("is required lastName"),
 
   check("password")
     .notEmpty()

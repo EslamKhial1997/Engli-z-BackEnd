@@ -2,6 +2,7 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const createUsersModel = require("../Modules/createUsers");
 const dotenv = require("dotenv");
+const createNotificationsModel = require("../Modules/createNotifiction");
 
 dotenv.config({ path: "config.env" });
 
@@ -14,8 +15,6 @@ passport.use(
       passReqToCallback: true, // تمرير req إلى دالة التحقق
     },
     async (req, accessToken, refreshToken, profile, done) => {
-      console.log(pofile);
-
       try {
         const clientIp =
           req.headers["x-forwarded-for"] || req.connection.remoteAddress;
@@ -29,10 +28,17 @@ passport.use(
           user = await createUsersModel.create({
             googleId: profile.id,
             email: profile.emails[0].value,
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName,
+            name: profile.name.givenName,
             image: profile.photos[0].value,
             ip: clientIp, // تخزين IP
+          });
+          await createNotificationsModel.create({
+            type: "signup",
+            msg: "تم إضافة طالب جديد",
+            studentSignup: {
+              studentName: profile.name.givenName,
+              studentEmail: profile.emails[0].value,
+            },
           });
         } else {
           // تحديث IP إذا كان المستخدم موجودًا

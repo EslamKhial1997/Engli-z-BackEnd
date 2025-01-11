@@ -1,4 +1,4 @@
-const { check } = require("express-validator");
+const { check, param } = require("express-validator");
 const { default: slugify } = require("slugify");
 const {
   MiddlewareValidator,
@@ -6,6 +6,7 @@ const {
 
 const createSectionModel = require("../Modules/createSection");
 const createTeachersModel = require("../Modules/createTeacher");
+const createLecturesModel = require("../Modules/createAlecture");
 
 exports.createLectureValidator = [
   check("price").notEmpty().withMessage("سعر المحاضرة مطلوب"),

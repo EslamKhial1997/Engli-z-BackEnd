@@ -47,10 +47,10 @@ exports.SingUp = expressAsyncHandler(async (req, res, next) => {
 
     notifications.push(
       await createNotificationsModel.create({
-        type: "student-signup",
+        type: "signup",
         msg: "تم إضافة طالب جديد",
         studentSignup: {
-          studentName: req.body.firstName + " " + req.body.lastName,
+          studentName: req.body.name,
           studentEmail: req.body.email,
           studentPhone: req.body.phone,
         },
@@ -60,10 +60,10 @@ exports.SingUp = expressAsyncHandler(async (req, res, next) => {
     if (admin) {
       notifications.push(
         await createNotificationsModel.create({
-          type: "student-signup",
+          type: "signup",
           msg: "تم إضافة طالب جديد",
           studentSignup: {
-            studentName: req.body.firstName + " " + req.body.lastName,
+            studentName: req.body.name,
             studentEmail: req.body.email,
             studentPhone: req.body.phone,
           },

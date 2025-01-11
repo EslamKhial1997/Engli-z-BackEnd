@@ -2,16 +2,13 @@ const factory = require("./FactoryHandler");
 const createSectionModel = require("../Modules/createSection");
 const expressAsyncHandler = require("express-async-handler");
 const createUsersModel = require("../Modules/createUsers");
-const createClassModel = require("../Modules/createClasses");
 const createNotificationsModel = require("../Modules/createNotifiction");
 const FeatureApi = require("../Utils/Feature");
 const createLecturesModel = require("../Modules/createAlecture");
 exports.createSections = expressAsyncHandler(async (req, res) => {
   req.body.teacher =
     req.user.role === "teacher" ? req.user._id : req.user.teacher._id;
-
-  const classGrade = await createClassModel.findOne({ _id: req.body.class });
-  const users = await createUsersModel.find({ grade: classGrade.grade });
+  const users = await createUsersModel.find({ grade: req.body.class });
 
   const newSection = new createSectionModel({
     ...req.body,
@@ -20,12 +17,8 @@ exports.createSections = expressAsyncHandler(async (req, res) => {
     users.map(async (user) => {
       const newNotification = new createNotificationsModel({
         user: user._id,
-        type: "new-section",
-
-        newSection: {
-          section: newSection._id,
-        },
-
+        type: "section",
+        section: newSection._id,
         msg: "تم اضافة فصل جديد",
       });
 
@@ -53,7 +46,7 @@ exports.getSections = expressAsyncHandler(async (req, res) => {
   // إعداد ميزات الاستعلام
   const ApiFeatures = new FeatureApi(createSectionModel.find(filter), req.query)
     .Fillter(createSectionModel)
-    .Sort()
+    .Sort(req.query.sort="-createdAt")
     .Fields()
     .Search()
     .Paginate(countDocs);

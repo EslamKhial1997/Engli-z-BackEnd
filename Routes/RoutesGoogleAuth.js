@@ -14,10 +14,8 @@ const generateToken = (userId) => {
   });
 };
 
-// استخدام cookieParser لتحليل الكوكيز
 Routes.use(cookieParser());
 
-// مسار تسجيل الدخول باستخدام جوجل
 Routes.get(
   "/google",
   passport.authenticate("google", { scope: ["profile", "email"] })

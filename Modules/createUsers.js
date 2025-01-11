@@ -2,14 +2,11 @@ const mongoose = require("mongoose");
 
 const createUsers = new mongoose.Schema(
   {
-    firstName: {
+    name: {
       type: String,
       required: [true, "Required lastName User"],
     },
-    lastName: {
-      type: String,
-      // required: [true, "Required lastName User"],
-    },
+
     slug: {
       type: String,
     },
@@ -22,7 +19,6 @@ const createUsers = new mongoose.Schema(
     },
     password: {
       type: String,
-      // required: [true, "Required Password User"],
       minlength: [6, "Password Too Short To Create"],
     },
     phone: { type: String, unique: true, sparse: true },
@@ -37,9 +33,8 @@ const createUsers = new mongoose.Schema(
     },
 
     grade: {
-      type: String,
-      enum: ["first", "second", "third"],
-      default: "first",
+      type: mongoose.Schema.ObjectId,
+      ref: "Class",
     },
     active: {
       type: String,
@@ -47,11 +42,18 @@ const createUsers = new mongoose.Schema(
       default: "inactive",
     },
     verificationToken: String,
-    ip: Number,
+    ip: String,
     googleId: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }
 );
+createUsers.pre(/^find/, function (next) {
+  this.populate({
+    path: "grade",
+    select: "name  grade",
+  });
+  next();
+});
 const ImageURL = (doc) => {
   if (
     doc.image &&

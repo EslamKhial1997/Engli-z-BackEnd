@@ -11,6 +11,7 @@ const {
   resizeImage,
   UploadVideo,
   deleteVideo,
+  getVideo,
 } = require("../Service/LectureService");
 const { createLectureValidator } = require("../Resuble/LectureValidationError");
 const { uploadPDF } = require("../Utils/imagesHandler");
@@ -44,6 +45,8 @@ Routes.route("/:id")
     UtilsValidator,
     deleteLecture
   );
-Routes.route("/video/:id").delete(deleteVideo);
+Routes.route("/video/:id")
+  .get(protect, getVideo)
+  .delete(protect, allowedTo("admin", "teacher"), deleteVideo);
 
 module.exports = Routes;

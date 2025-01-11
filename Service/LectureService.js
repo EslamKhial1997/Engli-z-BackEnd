@@ -1,4 +1,5 @@
 const factory = require("./FactoryHandler");
+const crypto = require("crypto");
 const createLecturesModel = require("../Modules/createAlecture");
 const expressAsyncHandler = require("express-async-handler");
 const createUsersModel = require("../Modules/createUsers");
@@ -8,6 +9,8 @@ const FeatureApi = require("../Utils/Feature");
 const createPackageModel = require("../Modules/createPackage");
 const { default: axios } = require("axios");
 const { filePathImage } = require("../Utils/imagesHandler");
+const createCouresModel = require("../Modules/createCouress");
+const createQuizModel = require("../Modules/createQuiz");
 
 exports.resizeImage = expressAsyncHandler(async (req, res, next) => {
   if (req.file) {
@@ -38,51 +41,38 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
     }
 
     // إنشاء الفيديو على BunnyCDN
-    const response = await axios.post(
-      `https://video.bunnycdn.com/library/${package.libraryID}/videos`,
-      { title: req.body.lecture },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          AccessKey: package.apiKey,
-        },
-      }
-    );
+    // const response = await axios.post(
+    //   `https://video.bunnycdn.com/library/${package.libraryID}/videos`,
+    //   { title: req.body.lecture },
+    //   {
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       AccessKey: package.apiKey,
+    //     },
+    //   }
+    // );
 
-    // تعيين GUID من استجابة BunnyCDN
-    req.body.guid = response.data.guid;
+    // req.body.guid = response.data.guid;
 
-    // إنشاء المحاضرة في قاعدة البيانات
     const newLecture = new createLecturesModel({
       ...req.body,
     });
 
-    // حفظ المحاضرة
     await newLecture.save();
-
-    // جلب القسم المرتبط بالمحاضرة مع البيانات المعبأة
     const populatedLecture = await newLecture.populate({
-      path: "section",  // حقل "section" في المحاضرة
-      select: "name description",  // تحديد الحقول التي نريد تعبئتها
+      path: "section", 
+      select: "name description", 
     });
-
-    // العثور على المستخدمين المرتبطين بالصف
     const users = await createUsersModel.find({
-      grade: populatedLecture.section.class.grade,
+      grade: populatedLecture.section.class._id,
     });
 
-    // إنشاء الإشعارات لجميع المستخدمين
     await Promise.all(
       users.map(async (user) => {
         const newNotification = new createNotificationsModel({
           user: user._id,
-          type: "new-lecture",
-          data: {
-            newLecture: {
-              lecture: populatedLecture._id,
-              section: populatedLecture.section._id,
-            },
-          },
+          type: "section",
+          section: populatedLecture.section._id,
           msg: "تم إضافة محاضرة جديدة.",
         });
 
@@ -90,17 +80,15 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
       })
     );
 
-    // إعادة المحاضرة المعبأة في الاستجابة
+  
     res.status(201).json({ status: "Success", data: populatedLecture });
   } catch (error) {
-    // معالجة الأخطاء
-    console.error(error);
+
     next(
       new ApiError("حدث خطأ أثناء إنشاء المحاضرة. يرجى المحاولة لاحقًا.", 500)
     );
   }
 });
-
 
 exports.getLectures = expressAsyncHandler(async (req, res) => {
   try {
@@ -115,7 +103,7 @@ exports.getLectures = expressAsyncHandler(async (req, res) => {
       req.query
     )
       .Fillter(createLecturesModel)
-      .Sort()
+      .Sort(req.query.sort="-createdAt")
       .Fields()
       .Search()
       .Paginate(countDocs);
@@ -261,6 +249,89 @@ exports.deleteVideo = expressAsyncHandler(async (req, res, next) => {
       }
     );
     res.status(200).json({ status: " Success", msg: "تم حذف الفيديو بنجاح" });
+  } catch (error) {
+    return next(new ApiError("خطأ في سيرفر الفيديوهات أثناء الحذف", 500));
+  }
+});
+exports.getVideo = expressAsyncHandler(async (req, res, next) => {
+  const findDocument = await createLecturesModel.findById(req.params.id);
+  if (!findDocument || !findDocument.guid) {
+    return next(
+      new ApiError("لم يتم العثور علي المحاضرة او معرف الفيديو", 404)
+    );
+  }
+
+  const package = await createPackageModel.findOne();
+  if (package.usedTraffic >= package.pricing.traffic) {
+    return next(
+      new ApiError(
+        "تم الوصول للحد الأقصى من المساحة المتاحة للمحاضرات. للمزيد من التفاصيل يرجى التواصل مع الدعم الفني.",
+        404
+      )
+    );
+  }
+  const myCourses = await createCouresModel.findOne(
+    {
+      user: req.user.id,
+      couresItems: { $elemMatch: { lacture: req.params.id } },
+    },
+    {
+      "couresItems.$": 1,
+    }
+  );
+  if (!myCourses || myCourses.couresItems.length === 0) {
+    return next(new ApiError("لم يتم شراء المحاضرة", 404));
+  }
+  if (req.user.ip !== myCourses.couresItems[0].ip) {
+    return next(new ApiError("لم يتم شراء المحاضرة من هذا الجهاز", 404));
+  }
+
+  try {
+    const response = await axios.get(
+      `https://video.bunnycdn.com/library/${package.libraryID}/videos/${findDocument.guid}/play`,
+      {
+        headers: {
+          accept: "application/json",
+          AccessKey: package.apiKey,
+        },
+      }
+    );
+    const myQuiz = await createQuizModel.findOne(
+      {
+        lecture: req.params.id,
+        results: { $elemMatch: { user: req.user.id } },
+      },
+      {
+        "results.$": 1,
+      }
+    );
+    const concatenatedString =
+      package.apiKey + response.data.video.guid + 7200000;
+
+    const hash = crypto
+      .createHash("sha256")
+      .update(concatenatedString)
+      .digest("hex");
+    res.status(200).json({
+      status: " Success",
+      data: `${package.libraryID}/${
+        response.data.video.guid
+      }?token=${hash}&expires=${7200000}`,
+      quiz: {
+        quiz: findDocument.quiz ? true : false,
+        msg: findDocument.quiz
+          ? "يوجد امتحان في المحاضرة"
+          : "لايوجد امتحان في المحاضرة",
+      },
+      results: {
+        quiz:
+          myQuiz && myQuiz.results && myQuiz.results.length > 0 ? true : false,
+        msg:
+          myQuiz && myQuiz.results && myQuiz.results.length > 0
+            ? "تم حل الامتحان"
+            : "لم يتم حل الامتحان",
+      },
+    });
   } catch (error) {
     return next(new ApiError("خطأ في سيرفر الفيديوهات أثناء الحذف", 500));
   }
