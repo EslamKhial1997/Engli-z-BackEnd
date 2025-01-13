@@ -73,7 +73,7 @@
           rgba(71, 71, 71, 0.555) 100%
         );
       }
-     
+
       .containerVideo {
         position: relative;
       }
@@ -97,8 +97,8 @@
           font-size: 60px;
         }
       }
-      
-      .fitContent{
+
+      .fitContent {
         height: 100vh !important;
         overflow-y: auto;
       }
@@ -128,7 +128,8 @@
                 type="file"
                 id="video"
                 name="video"
-                accept=".mp4"
+                accept="video/mp4"
+                required
                 onchange="handleFileChange(event)"
               />
               <div id="error" class="text-danger" style="display: none">
@@ -158,14 +159,14 @@
           class="col-lg-3 justify-content-center align-items-center pt-3 rounded bg-light fitContent"
           style="height: fitContent"
         >
-        <div class="progress mx-3" style="display: none" id="uploadProgress">
-          <div
-            class="progress-bar bg-success"
-            role="progressbar"
-            style="width: 0%"
-            id="progressBar"
-          ></div>
-        </div>
+          <div class="progress mx-3" style="display: none" id="uploadProgress">
+            <div
+              class="progress-bar bg-success"
+              role="progressbar"
+              style="width: 0%"
+              id="progressBar"
+            ></div>
+          </div>
           <h3 class="text-center text-success">بيانات المحاضرة</h3>
           <div class="text-end d-flex flex-column p-3">
             <div class="my-2">
@@ -199,11 +200,40 @@
               تعديل المحاضرة <i class="bi bi-pencil-square"></i>
             </button>
           </div>
-         
         </div>
       </div>
     </div>
     <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then((registration) => {
+              console.log(
+                "Service Worker registered with scope:",
+                registration.scope
+              );
+              // تحقق من وجود controller بعد التسجيل
+              if (navigator.serviceWorker.controller) {
+                console.log("Service Worker controller available.");
+              }
+            })
+            .catch((error) => {
+              console.error("Service Worker registration failed:", error);
+            });
+
+          navigator.serviceWorker.addEventListener("message", (event) => {
+            if (event.data.status === "upload-progress") {
+              alert(`Progress received: ${event.data.progress}%`);
+              const progressBar = document.getElementById("progress-bar");
+              if (progressBar) {
+                progressBar.style.width = `${event.data.progress}%`;
+              }
+            }
+          });
+        });
+      }
+
       let video = null;
       let uploadInProgress = false;
 
@@ -225,9 +255,7 @@
 
       document
         .getElementById("uploadForm")
-        .addEventListener("submit", function (event) {
-          console.log(event);
-          
+        .addEventListener("submit", async function (event) {
           event.preventDefault();
           const submitBtn = document.getElementById("submitBtn");
           const spinner = document.getElementById("spinner");
@@ -238,45 +266,170 @@
             spinner.style.display = "inline-block";
             submitBtn.disabled = true;
             uploadProgress.style.display = "block";
-
             uploadInProgress = true;
 
-            axios
-              .put(
-                `https://video.bunnycdn.com/library/<%= libraryID %>/videos/<%= guid %>`,
-                video,
-                {
-                  headers: {
-                    "Content-Type": "application/octet-stream",
-                    AccessKey: "<%= apiKey %>",
-                  },
-                  onUploadProgress: function (progressEvent) {
-                    const percentCompleted = Math.round(
-                      (progressEvent.loaded * 100) / progressEvent.total
-                    );
-                    progressBar.style.width = `${percentCompleted}%`;
-                    progressBar.textContent = `${percentCompleted}%`;
-                  },
-                }
-              )
-              .then((response) => {
-                const formData = new FormData();
-                formData.append("video", true);
-                axios.put(
-                  `http://localhost:3000/api/v1/lecture/<%= lecture._id %>`, // مسار المحاضرة
-                  formData,
+            if ("<%= guid %>") {
+              axios
+                .put(
+                  `https://video.bunnycdn.com/library/<%= libraryID %>/videos/<%= guid %>`,
+                  video,
                   {
                     headers: {
-                      "Content-Type": "multipart/form-data",
-                      Authorization: "Bearer <%= token %>",
+                      "Content-Type": "application/octet-stream",
+                      AccessKey: "<%= apiKey %>",
+                    },
+                    onUploadProgress: function (progressEvent) {
+                      const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                      );
+                      progressBar.style.width = `${percentCompleted}%`;
+                      progressBar.textContent = `${percentCompleted}%`;
                     },
                   }
-                );
-                document
-                  .querySelectorAll(".modal")
-                  .forEach((modal) => modal.remove()); // إزالة النوافذ السابقة
+                )
+                .then((response) => {
+                  document
+                    .querySelectorAll(".modal")
+                    .forEach((modal) => modal.remove()); // إزالة النوافذ السابقة
 
-                const modalHtml = `
+                  const modalHtml = `
+                    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                          <div class="text-center">
+                            <h4 class="modal-title my-3 d-block text-success" id="successModalLabel">تم رفع الفيديو بنجاح وجاري المعالجة</h4>
+                            <h6 class="modal-title my-3 d-block">متوسط مدة معالجه الفيديو 15 دقيقة لكل ساعة</h6>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-success" data-bs-dismiss="modal">إغلاق</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                  document.body.insertAdjacentHTML("beforeend", modalHtml);
+                  const successModal = new bootstrap.Modal(
+                    document.getElementById("successModal")
+                  );
+                  successModal.show();
+
+                  spinner.style.display = "none";
+                  submitBtn.disabled = false;
+                  uploadProgress.style.display = "none";
+                  uploadInProgress = false;
+                })
+                .catch((error) => {
+                  if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                      status: "upload-progress",
+                      progress: 70, // جرب قيمة ثابتة للتحقق
+                    });
+                  } else {
+                    console.log("No service worker controller found.");
+                  }
+
+                  document
+                    .querySelectorAll(".modal")
+                    .forEach((modal) => modal.remove()); // إزالة النوافذ السابقة
+
+                  const modalHtml = `
+                    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                          <div class="text-center">
+                            <h4 class="modal-title my-3 d-block text-danger" id="errorModalLabel">خطأ في رفع الفيديو</h4>
+                          </div>
+                          <div class="modal-body">
+                            <p class="text-center">${
+                              error.response?.data?.message ===
+                              "The video has already been uploaded."
+                                ? "تم رفع فيديو من قبل للمحاضرة ولايمكن رفع اكثر من فيديو"
+                                : "حدث خطأ أثناء رفع الفيديو. يرجى المحاولة مرة أخرى."
+                            }</p>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">إغلاق</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                  document.body.insertAdjacentHTML("beforeend", modalHtml);
+                  const errorModal = new bootstrap.Modal(
+                    document.getElementById("errorModal")
+                  );
+                  errorModal.show();
+                  spinner.style.display = "none";
+                  submitBtn.disabled = false;
+                  uploadProgress.style.display = "none";
+                  uploadInProgress = false;
+                });
+            } else {
+              // تحديد progressBar و العناصر الأخرى التي سيتم التفاعل معها
+              const progressBar = document.getElementById("progressBar");
+              const spinner = document.getElementById("spinner");
+              const submitBtn = document.getElementById("submitBtn");
+              const uploadProgress = document.getElementById("uploadProgress");
+              let uploadInProgress = false;
+
+              await axios
+                .post(
+                  `https://video.bunnycdn.com/library/<%= libraryID %>/videos`,
+                  { title: "<%= lecture.lecture %>" },
+                  {
+                    headers: {
+                      "Content-Type": "application/json",
+                      AccessKey: "<%= apiKey %>",
+                    },
+                  }
+                )
+                .then((response) => {
+                  // إنشاء FormData لإرسال الفيديو
+                  const formData = new FormData();
+                  formData.append("guid", response.data.guid);
+                  formData.append("video", true);
+                  axios.put(
+                    `http://localhost:3002/api/v1/lecture/<%= lecture._id %>`,
+                    formData,
+                    {
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer <%= token %>`,
+                      },
+                    }
+                  );
+
+                  // رفع الفيديو باستخدام axios.put
+                  axios
+                    .put(
+                      `https://video.bunnycdn.com/library/<%= libraryID %>/videos/${response.data.guid}`,
+                      video, // هنا يجب أن يكون متغير الفيديو (video) يحتوي على البيانات الصحيحة
+                      {
+                        headers: {
+                          "Content-Type": "application/octet-stream",
+                          AccessKey: "<%= apiKey %>",
+                        },
+                        onUploadProgress: function (progressEvent) {
+                          // التحقق من تقدم رفع الفيديو
+                          const percentCompleted = Math.round(
+                            (progressEvent.loaded * 100) / progressEvent.total
+                          );
+                          console.log(`Upload Progress: ${percentCompleted}%`); // سجل التقدم في الكونسول
+
+                          // تحديث progress bar
+                          progressBar.style.width = `${percentCompleted}%`;
+                          progressBar.textContent = `${percentCompleted}%`;
+                        },
+                      }
+                    )
+                    .then((response) => {
+                      // إغلاق النوافذ المنبثقة السابقة
+                      document
+                        .querySelectorAll(".modal")
+                        .forEach((modal) => modal.remove());
+
+                      // إضافة نافذة منبثقة عند النجاح
+                      const modalHtml = `
           <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
@@ -291,55 +444,60 @@
             </div>
           </div>
         `;
-                document.body.insertAdjacentHTML("beforeend", modalHtml);
-                const successModal = new bootstrap.Modal(
-                  document.getElementById("successModal")
-                );
-                successModal.show();
+                      document.body.insertAdjacentHTML("beforeend", modalHtml);
+                      const successModal = new bootstrap.Modal(
+                        document.getElementById("successModal")
+                      );
+                      successModal.show();
 
-                spinner.style.display = "none";
-                submitBtn.disabled = false;
-                uploadProgress.style.display = "none";
-                uploadInProgress = false;
-              })
-              .catch((error) => {
-                document
-                  .querySelectorAll(".modal")
-                  .forEach((modal) => modal.remove()); // إزالة النوافذ السابقة
+                      // إخفاء العناصر بعد نجاح الرفع
+                      spinner.style.display = "none";
+                      submitBtn.disabled = false;
+                      uploadProgress.style.display = "none";
+                      uploadInProgress = false;
+                    });
+                })
+                .catch((error) => {
+                  // في حالة حدوث خطأ أثناء الرفع
+                  document
+                    .querySelectorAll(".modal")
+                    .forEach((modal) => modal.remove());
 
-                const modalHtml = `
-          <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content">
-                <div class="text-center">
-                  <h4 class="modal-title my-3 d-block text-danger" id="errorModalLabel">خطأ في رفع الفيديو</h4>
-                </div>
-                <div class="modal-body">
-                  <p class="text-center">${
-                    error.response?.data?.message ===
-                    "The video has already been uploaded."
-                      ? "تم رفع فيديو من قبل للمحاضرة ولايمكن رفع اكثر من فيديو"
-                      : "حدث خطأ أثناء رفع الفيديو. يرجى المحاولة مرة أخرى."
-                  }</p>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-danger" data-bs-dismiss="modal">إغلاق</button>
-                </div>
-              </div>
+                  const modalHtml = `
+      <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="text-center">
+              <h4 class="modal-title my-3 d-block text-danger" id="errorModalLabel">خطأ في رفع الفيديو</h4>
+            </div>
+            <div class="modal-body">
+              <p class="text-center">${
+                error.response?.data?.message ===
+                "The video has already been uploaded."
+                  ? "تم رفع فيديو من قبل للمحاضرة ولايمكن رفع اكثر من فيديو"
+                  : "حدث خطأ أثناء رفع الفيديو. يرجى المحاولة مرة أخرى."
+              }</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger" data-bs-dismiss="modal">إغلاق</button>
             </div>
           </div>
-        `;
-                document.body.insertAdjacentHTML("beforeend", modalHtml);
-                const errorModal = new bootstrap.Modal(
-                  document.getElementById("errorModal")
-                );
-                errorModal.show();
+        </div>
+      </div>
+    `;
+                  document.body.insertAdjacentHTML("beforeend", modalHtml);
+                  const errorModal = new bootstrap.Modal(
+                    document.getElementById("errorModal")
+                  );
+                  errorModal.show();
 
-                spinner.style.display = "none";
-                submitBtn.disabled = false;
-                uploadProgress.style.display = "none";
-                uploadInProgress = false;
-              });
+                  // إخفاء العناصر بعد الفشل
+                  spinner.style.display = "none";
+                  submitBtn.disabled = false;
+                  uploadProgress.style.display = "none";
+                  uploadInProgress = false;
+                });
+            }
           }
         });
     </script>

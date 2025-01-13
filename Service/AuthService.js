@@ -33,6 +33,7 @@ exports.createFirstManagerAccount = async () => {
 };
 
 exports.getLoggedUserData = expressAsyncHandler(async (req, res, next) => {
+  
   req.params.id = req.user._id;
   next();
 });

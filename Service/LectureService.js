@@ -40,19 +40,7 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
       );
     }
 
-    // إنشاء الفيديو على BunnyCDN
-    // const response = await axios.post(
-    //   `https://video.bunnycdn.com/library/${package.libraryID}/videos`,
-    //   { title: req.body.lecture },
-    //   {
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       AccessKey: package.apiKey,
-    //     },
-    //   }
-    // );
-
-    // req.body.guid = response.data.guid;
+   
 
     const newLecture = new createLecturesModel({
       ...req.body,
@@ -331,6 +319,7 @@ exports.getVideo = expressAsyncHandler(async (req, res, next) => {
             ? "تم حل الامتحان"
             : "لم يتم حل الامتحان",
       },
+      pdf:findDocument.pdf
     });
   } catch (error) {
     return next(new ApiError("خطأ في سيرفر الفيديوهات أثناء الحذف", 500));

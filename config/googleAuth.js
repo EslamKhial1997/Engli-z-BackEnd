@@ -25,13 +25,17 @@ passport.use(
 
         if (!user) {
           // إنشاء مستخدم جديد مع حفظ IP
-          user = await createUsersModel.create({
-            googleId: profile.id,
-            email: profile.emails[0].value,
-            name: profile.name.givenName,
-            image: profile.photos[0].value,
-            ip: clientIp, // تخزين IP
-          });
+          user = await createUsersModel
+            .create({
+              googleId: profile.id,
+              email: profile.emails[0].value,
+              name: profile.name.givenName,
+              image: profile.photos[0].value,
+              ip: clientIp, // تخزين IP
+            })
+            .then(() => {
+              res.redirect("/dashboard");
+            });
           await createNotificationsModel.create({
             type: "signup",
             msg: "تم إضافة طالب جديد",
@@ -48,7 +52,7 @@ passport.use(
             { new: true }
           );
         }
-
+        req.session.isNewUser = isNewUser;
         return done(null, user);
       } catch (err) {
         return done(err, null);

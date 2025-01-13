@@ -68,7 +68,11 @@ exports.getOneCourse = (Model, populateOpt) =>
         { new: true }
       ).exec();
 
+      if (!query) {
+        return res.status(404).json({ msg: "لايوجد محاضرات متاحة لك" });
+      }
       let updatedCourse = await query;
+
       updatedCourse = await Model.findById(updatedCourse._id);
 
       if (!updatedCourse) {
@@ -77,8 +81,8 @@ exports.getOneCourse = (Model, populateOpt) =>
 
       res.status(200).json({
         status: "success",
-        totalCoursses: updatedCourse.couresItems.length, // عدد العناصر المتبقية
-        data: updatedCourse.couresItems, // العناصر المتبقية
+        totalCoursses: updatedCourse.couresItems.length,
+        data: updatedCourse.couresItems,
       });
     } catch (error) {
       res.status(401).json({

@@ -10,7 +10,7 @@ const createLectures = new mongoose.Schema(
       default: 0,
       required: [true, "سعر المحاضرة مطلوب"],
     },
-
+    
     video: {
       type: Boolean,
       default: false,

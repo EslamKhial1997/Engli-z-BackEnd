@@ -8,8 +8,6 @@ const createTransactionModel = require("../Modules/createtransaction");
 const { default: mongoose } = require("mongoose");
 const createTeachersModel = require("../Modules/createTeacher");
 const createPackageModel = require("../Modules/createPackage");
-const { default: axios } = require("axios");
-
 exports.createCoures = expressAsyncHandler(async (req, res, next) => {
   const clientIp =
     req.ip ||
