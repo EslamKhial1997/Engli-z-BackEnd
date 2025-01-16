@@ -2,7 +2,7 @@ const expressAsyncHandler = require("express-async-handler");
 const createLecturesModel = require("../Modules/createAlecture");
 const createPackageModel = require("../Modules/createPackage");
 const factory = require("./FactoryHandler");
-const { default: axios } = require("axios");
+const { default: axios } = require("axios"); 
 
 exports.createBunny = expressAsyncHandler(async (req, res, next) => {
   const token = req.cookies.access_token;
@@ -49,10 +49,10 @@ exports.createBunny = expressAsyncHandler(async (req, res, next) => {
     const lecture = await createLecturesModel.findById(id).populate("section");
     const package = await createPackageModel.findOne();
 
-    if (!lecture || !package) {
-      // إذا لم يتم العثور على المحاضرة أو الباقة، عرض رسالة خطأ
-      return res.status(404).send("Not found");
-    }
+    // if (!lecture || !package) {
+    //   // إذا لم يتم العثور على المحاضرة أو الباقة، عرض رسالة خطأ
+    //   return res.status(404).send("Not found");
+    // }
 
     try {
       if (lecture.guid) {
@@ -69,7 +69,7 @@ exports.createBunny = expressAsyncHandler(async (req, res, next) => {
         if (response.data.status !== 0 || lecture.video) {
           return res.redirect("/dashboard/create-files");
         }
-      }
+      } 
     } catch (error) {
       console.error("Error fetching video status:", error);
       status = false; // تعيين القيمة الافتراضية إذا فشل الطلب
@@ -88,5 +88,69 @@ exports.createBunny = expressAsyncHandler(async (req, res, next) => {
   } catch (error) {
     console.error("Server Error:", error);
     res.status(500).send("Server Error");
+  }
+});
+
+exports.uploadVideo = expressAsyncHandler(async (req, res, next) => {
+  try {
+    const { lectureId } = req.params;
+    const videoFile = req.file;
+    
+    if (!videoFile) {
+      return res.status(400).json({ message: "No video file provided" });
+    }
+
+    const lecture = await createLecturesModel.findById(lectureId);
+    const package = await createPackageModel.findOne();
+
+    if (!lecture || !package) {
+      return res.status(404).json({ message: "Lecture or package not found" });
+    }
+
+    // Create video in Bunny CDN
+    const createVideoResponse = await axios.post(
+      `https://video.bunnycdn.com/library/${package.libraryID}/videos`,
+      {
+        title: lecture.title,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          AccessKey: package.apiKey,
+        },
+      }
+    );
+
+    const videoId = createVideoResponse.data.guid;
+
+    // Upload the video file
+    await axios.put(
+      `https://video.bunnycdn.com/library/${package.libraryID}/videos/${videoId}`,
+      videoFile.buffer,
+      {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          AccessKey: package.apiKey,
+        },
+      }
+    );
+
+    // Update lecture with video ID
+    lecture.guid = videoId;
+    await lecture.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Video uploaded successfully",
+      videoId: videoId
+    });
+
+  } catch (error) {
+    console.error("Error uploading video:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error uploading video",
+      error: error.message
+    });
   }
 });

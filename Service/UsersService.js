@@ -1,13 +1,12 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const expressAsyncHandler = require("express-async-handler");
-const ApiError = require("../Resuble/ApiErrors");
 const factory = require("./FactoryHandler");
 const createUsersModel = require("../Modules/createUsers");
 const { UploadSingleImage } = require("../Middleware/UploadImageMiddleware");
 const fs = require("fs");
-const createTeachersModel = require("../Modules/createTeacher");
 const createPackageModel = require("../Modules/createPackage");
+const { sanitizegetMe } = require("../Utils/sanitize");
 
 exports.uploadImage = UploadSingleImage("image");
 exports.fsRemove = async (filePath) => {
@@ -58,8 +57,17 @@ exports.createUsers = expressAsyncHandler(async (req, res) => {
   }
 });
 
+exports.getMe = expressAsyncHandler(async (req, res, next) => {
+  let getMeData = await createUsersModel.findById(req.user._id);
+  if (!getMeData)
+    next(
+      new ApiError(`Sorry Can't get This ID From ID :${req.params.id}`, 404)
+    );
+  return res.status(200).json({ data: sanitizegetMe(getMeData) });
+});
 exports.getUsers = factory.getAll(createUsersModel);
-exports.getUser = (model) => factory.getOne(model);
+
+exports.getUser = factory.getOne(createUsersModel);
 exports.deleteUser = factory.deleteOne(createUsersModel, "admin");
 
 exports.updateLoggedUserPassword = (model) =>
@@ -79,16 +87,3 @@ exports.updateLoggedUserPassword = (model) =>
     res.status(200).json({ data: user, token });
   });
 exports.updateUser = factory.updateOne(createUsersModel, "admin");
-exports.paidToTeacher = expressAsyncHandler(async (req, res, next) => {
-  const teacher = await createTeachersModel.findById(req.params.id);
-  if (!teacher) {
-    return next(new ApiError("Teacher Not Found"));
-  }
-  teacher.paid.push(req.body);
-  await teacher.save(); // Save the updated teacher document to the database
-
-  res.status(200).json({
-    status: "success",
-    data: teacher,
-  });
-});

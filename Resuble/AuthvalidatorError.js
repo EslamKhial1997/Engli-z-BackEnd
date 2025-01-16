@@ -7,6 +7,10 @@ const {
 exports.LoginValidator = [
   check("password").notEmpty().withMessage("الرقم السري مطلوب"),
 
-  check("email").notEmpty().withMessage("الايميل مطلوب"),
+  check("email")
+    .notEmpty()
+    .withMessage("الايميل مطلوب")
+    .isEmail()
+    .withMessage("يجب ان يكون ايميل صحيح"),
   MiddlewareValidator,
 ];

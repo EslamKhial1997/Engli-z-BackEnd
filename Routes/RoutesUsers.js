@@ -7,7 +7,7 @@ const {
   deleteUser,
   getUser,
   uploadImage,
-
+  getMe,
   updateLoggedUserPassword,
 } = require("../Service/UsersService");
 const {
@@ -16,15 +16,11 @@ const {
   getLoggedUserData,
 } = require("../Service/AuthService");
 const { resizeImageAuth } = require("../Utils/imagesHandler");
-const createUsersModel = require("../Modules/createUsers");
 const { UtilsValidator } = require("../Resuble/UtilsValidationError");
 
 const Routes = Router();
 Routes.use(protect);
-Routes.get("/getMe", getLoggedUserData, (req, res, next) => {
-  const model = req.model;
-  getUser(model)(req, res, next);
-});
+Routes.get("/getMe", getMe);
 Routes.put(
   "/updateMe",
   uploadImage,
@@ -47,7 +43,7 @@ Routes.route("/")
   )
   .get(allowedTo("manager", "admin", "teacher"), getUsers);
 Routes.route("/:id")
-  .get(UtilsValidator, getUser(createUsersModel))
+  .get(UtilsValidator, getUser)
   .delete(allowedTo("manager", "teacher"), UtilsValidator, deleteUser)
   .put(
     allowedTo("admin", "teacher"),

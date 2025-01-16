@@ -8,6 +8,7 @@ const createUsersModel = require("../Modules/createUsers");
 const createTeachersModel = require("../Modules/createTeacher");
 const createNotificationsModel = require("../Modules/createNotifiction");
 const sendVerificationEmail = require("../Utils/SendCodeEmail");
+const { sanitizeSignUp } = require("../Utils/sanitize");
 
 exports.createFirstManagerAccount = async () => {
   const existingManager = await createUsersModel.findOne({
@@ -33,7 +34,6 @@ exports.createFirstManagerAccount = async () => {
 };
 
 exports.getLoggedUserData = expressAsyncHandler(async (req, res, next) => {
-  
   req.params.id = req.user._id;
   next();
 });
@@ -86,32 +86,57 @@ exports.SingUp = expressAsyncHandler(async (req, res, next) => {
     await user.save();
 
     return res.status(200).json({
-      status: "success",
-      msg: "تم ارسال اللينك بنجاح",
-      data: user,
+      status: "تم اضافة طالب جديد",
       token,
     });
   } catch (error) {
     return next(new ApiError("فشل في عملية التسجيل أو إرسال الإشعارات", 500));
   }
 });
+const Token = () =>
+  expressAsyncHandler((req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({
+        redirectTo: "/login",
+      });
+    }
+    jwt.verify(refreshToken, process.env.DB_URL, (err, user) => {
+      if (err)
+        return res.status(403).json({
+          redirectTo: "/login",
+        });
 
+      const accessToken = jwt.sign(
+        { userId: user.userId },
+        process.env.DB_URL,
+        {
+          expiresIn: "1m",
+        }
+      );
+
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: true,
+      }); // 5 دقا
+    });
+  });
 exports.Login = expressAsyncHandler(async (req, res, next) => {
   const clientIp = req.ip || req.headers["x-forwarded-for"]?.split(",").shift();
 
   let user = null;
   let teacher = null;
 
+  // تحقق من بيانات المستخدم
   if (req.body.password) {
-    user = await createUsersModel.findOne({
-      email: req.body.email,
-    });
+    user = await createUsersModel.findOne({ email: req.body.email });
   } else {
     user = await createUsersModel.findOne({
       $or: [{ email: req.body.email }, { phone: req.body.email }],
     });
   }
 
+  // تحقق من بيانات المعلم
   teacher = await createTeachersModel.findOne({
     $or: [{ email: req.body.email }, { phone: req.body.email }],
   });
@@ -120,21 +145,49 @@ exports.Login = expressAsyncHandler(async (req, res, next) => {
   if (user && (await bcrypt.compare(req.body.password, user.password))) {
     user.ip = clientIp;
     await user.save();
-    const token = jwt.sign({ userId: user._id }, process.env.DB_URL, {
-      expiresIn: "365d",
+
+    // إنشاء accessToken و refreshToken للمستخدم
+    const accessToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
+      expiresIn: "1m", // صلاحية الـ accessToken 5 دقائق
     });
-    return res.status(200).json({ data: user, token });
+    const refreshToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
+      expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
+    });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+    }); // 5 دقائق
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+    }); // 24 ساعة
+    return res
+      .status(200)
+      .json({ token: accessToken, refreshToken: refreshToken });
   }
 
   // التحقق من المعلم
   if (teacher && (await bcrypt.compare(req.body.password, teacher.password))) {
-    const token = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
-      expiresIn: "365d",
+    const accessToken = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
+      expiresIn: "5m", // صلاحية الـ accessToken 5 دقائق
     });
-    return res.status(200).json({ data: teacher, token });
+    const refreshToken = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
+      expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
+    });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+    }); // 5 دقائق
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+    }); // 24 ساعة
+    return res
+      .status(200)
+      .json({ token: accessToken, refreshToken: refreshToken });
   }
 
-  // في حال كانت بيانات تسجيل الدخول خاطئة
+  // في حالة فشل تسجيل الدخول
   return res.status(500).json({
     status: "Error",
     msg: "خطأ في اسم المستخدم أو كلمة المرور",
@@ -198,15 +251,10 @@ exports.allowedTo = (...roles) =>
   });
 
 exports.protect = expressAsyncHandler(async (req, res, next) => {
-  let token;
+  const token = req.cookies.accessToken;
 
   // استخراج التوكن من الهيدر
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  } else {
+  if (!token) {
     return res.status(401).json({
       statusCode: "Error",
       msg: "لم يتم توفير رمز التفويض",
@@ -275,6 +323,7 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
         msg: "التوكن غير صحيح",
       });
     } else if (error.name === "TokenExpiredError") {
+      Token();
       return res.status(401).json({
         statusCode: "Error",
         msg: "التوكن منتهي الصلاحيه",

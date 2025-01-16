@@ -1,5 +1,4 @@
 const { Router } = require("express");
-const jwt = require("jsonwebtoken");
 const { LoginValidator } = require("../Resuble/AuthvalidatorError");
 const {
   SingUp,
@@ -7,6 +6,7 @@ const {
   forgetPassword,
   restNewPassword,
   verifyEmail,
+  
 } = require("../Service/AuthService");
 require("../config/googleAuth");
 const { createUsersValidator } = require("../Resuble/UsersvalidatorError");
@@ -25,7 +25,6 @@ Routes.route("/signup").post(
 // مسار تسجيل الدخول
 Routes.route("/login").post(limiter, LoginValidator, Login);
 
-// مسار نسيان كلمة المرور
 Routes.post("/forgetPassword", limiter, forgetPassword);
 
 // مسار التحقق من البريد الإلكتروني
