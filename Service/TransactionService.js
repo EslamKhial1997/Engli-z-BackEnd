@@ -1,7 +1,6 @@
 const expressAsyncHandler = require("express-async-handler");
 const createTransactionModel = require("../Modules/createtransaction");
 const FeatureApi = require("../Utils/Feature");
-const moment = require("moment");
 const createUsersModel = require("../Modules/createUsers");
 const createLecturesModel = require("../Modules/createAlecture");
 const createSectionModel = require("../Modules/createSection");
@@ -9,7 +8,6 @@ const createCouponsModel = require("../Modules/createCoupon");
 const { default: axios } = require("axios");
 const createCouresModel = require("../Modules/createCouress");
 const createPackageModel = require("../Modules/createPackage");
-const XOAuth2 = require("nodemailer/lib/xoauth2");
 const createTotalsModel = require("../Modules/createTotals");
 
 // Allowed To User

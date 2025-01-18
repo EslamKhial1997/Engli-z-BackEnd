@@ -111,7 +111,7 @@ const Token = () =>
         { userId: user.userId },
         process.env.DB_URL,
         {
-          expiresIn: "1m",
+          expiresIn: "1d",
         }
       );
 
@@ -148,7 +148,7 @@ exports.Login = expressAsyncHandler(async (req, res, next) => {
 
     // إنشاء accessToken و refreshToken للمستخدم
     const accessToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
-      expiresIn: "1m", // صلاحية الـ accessToken 5 دقائق
+      expiresIn: "1d", // صلاحية الـ accessToken 5 دقائق
     });
     const refreshToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
       expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
@@ -163,13 +163,13 @@ exports.Login = expressAsyncHandler(async (req, res, next) => {
     }); // 24 ساعة
     return res
       .status(200)
-      .json({ token: accessToken, refreshToken: refreshToken });
+      .json({ token: accessToken, refreshToken: refreshToken , data:user });
   }
 
   // التحقق من المعلم
   if (teacher && (await bcrypt.compare(req.body.password, teacher.password))) {
     const accessToken = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
-      expiresIn: "5m", // صلاحية الـ accessToken 5 دقائق
+      expiresIn: "1d", // صلاحية الـ accessToken 5 دقائق
     });
     const refreshToken = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
       expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
@@ -184,7 +184,7 @@ exports.Login = expressAsyncHandler(async (req, res, next) => {
     }); // 24 ساعة
     return res
       .status(200)
-      .json({ token: accessToken, refreshToken: refreshToken });
+      .json({ token: accessToken, refreshToken: refreshToken ,data:user });
   }
 
   // في حالة فشل تسجيل الدخول
@@ -304,7 +304,7 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
       currentUser.role === "manager"
     ) {
       req.model = createUsersModel;
-    } else if (currentUser.role === "teacher") {
+    } else if (currentUser.role === "teacher") { 
       req.model = createTeachersModel;
     } else {
       return res.status(403).json({

@@ -2,92 +2,91 @@ const expressAsyncHandler = require("express-async-handler");
 const createLecturesModel = require("../Modules/createAlecture");
 const createPackageModel = require("../Modules/createPackage");
 const factory = require("./FactoryHandler");
-const { default: axios } = require("axios"); 
+const { default: axios } = require("axios");
 
 exports.createBunny = expressAsyncHandler(async (req, res, next) => {
-  const token = req.cookies.access_token;
-  const package = await createPackageModel.findOne();
-  if (!token) {
-    return res.redirect("/login");
-  }
-  const bunny = await axios
-    .get(`https://api.bunny.net/videolibrary/${package.libraryID}`, {
-      headers: {
-        accept: "application/json",
-        AccessKey: package.token,
-      },
-    })
-    .then((response) => response.data)
-    .catch(() => null);
-  if (
-    bunny.TrafficUsage <= package.usedStorage ||
-    bunny.StorageUsage <= package.usedTraffic
-  ) {
-    // return res.render("Error", {
-    //   msg: "لا يمكن رفع اي محاضرة في الوقت الحالي",
-    // });
-    res.redirect("/dashboard");
-    return res
-      .status(400)
-      .json({ msg: "لا يمكن رفع اي محاضرة في الوقت الحالي" });
-  } else {
+  try {
+    const package = await createPackageModel.findOne();
+
+    const bunny = await axios.get(
+      `https://api.bunny.net/videolibrary/${package.libraryID}`,
+      {
+        headers: {
+          accept: "application/json",
+          AccessKey: package.token,
+        },
+      }
+    );
+
+    if (
+      !bunny ||
+      Math.floor(bunny.data.StorageUsage / (1000 * 1000)) >=
+        package.pricing.upload
+    ) {
+      return res
+        .status(401)
+        .json({
+          model: false,
+          msg: " لا يمكن رفع أي محاضرة في الوقت الحالي المساحه مكتملة",
+        });
+    }
+
     await createPackageModel.findByIdAndUpdate(
       package._id,
       {
         $set: {
-          usedStorage: Math.floor(bunny.StorageUsage / (1000 * 1000)),
-          usedTraffic: Math.floor(bunny.TrafficUsage / (1000 * 1000)),
+          usedStorage: Math.floor(bunny.data.StorageUsage / (1000 * 1000)),
+          usedTraffic: Math.floor(bunny.data.TrafficUsage / (1000 * 1000)),
         },
       },
       { new: true }
     );
-  }
-  try {
+
     const { id } = req.params;
-    let status;
-    // البحث عن المحاضرة باستخدام الـ ID
-    const lecture = await createLecturesModel.findById(id).populate("section");
-    const package = await createPackageModel.findOne();
+    const lecture = await createLecturesModel.findById(id);
+    if (lecture?.guid) {
+      const response = await axios.get(
+        `https://video.bunnycdn.com/library/${package.libraryID}/videos/${lecture.guid}`,
+        {
+          headers: {
+            "Content-Type": "application/octet-stream",
+            AccessKey: package.apiKey,
+          },
+        }
+      );
 
-    // if (!lecture || !package) {
-    //   // إذا لم يتم العثور على المحاضرة أو الباقة، عرض رسالة خطأ
-    //   return res.status(404).send("Not found");
-    // }
-
-    try {
-      if (lecture.guid) {
-        const response = await axios.get(
+      if (response.data.status === 0) {
+        await axios.delete(
           `https://video.bunnycdn.com/library/${package.libraryID}/videos/${lecture.guid}`,
           {
             headers: {
-              "Content-Type": "application/octet-stream",
+              accept: "application/json",
               AccessKey: package.apiKey,
             },
           }
         );
 
-        if (response.data.status !== 0 || lecture.video) {
-          return res.redirect("/dashboard/create-files");
-        }
-      } 
-    } catch (error) {
-      console.error("Error fetching video status:", error);
-      status = false; // تعيين القيمة الافتراضية إذا فشل الطلب
-      return res.redirect("/error");
+        await createLecturesModel.findByIdAndUpdate(id, {
+          $unset: { guid: "" },
+        });
+      } else {
+        return res.status(401).json({
+          model: false,
+          msg: "يوجد فيديو في المحاضرة",
+        });
+      }
     }
 
-    // تمرير الـ ID وبيانات المحاضرة إلى القالب إذا كانت الحالة صحيحة
-    res.render("uploadForm", {
-      lecture: lecture,
+    return res.status(200).json({
+      model: true,
+      msg: "لايوجد فيديو في المحاضرة",
       guid: lecture.guid,
       libraryID: package.libraryID,
       apiKey: package.apiKey,
-      status,
-      token,
     });
   } catch (error) {
     console.error("Server Error:", error);
-    res.status(500).send("Server Error");
+    next(new ApiError("خطأ في سيرفر الفيديوهات", 500));
   }
 });
 
@@ -95,7 +94,7 @@ exports.uploadVideo = expressAsyncHandler(async (req, res, next) => {
   try {
     const { lectureId } = req.params;
     const videoFile = req.file;
-    
+
     if (!videoFile) {
       return res.status(400).json({ message: "No video file provided" });
     }
@@ -142,15 +141,14 @@ exports.uploadVideo = expressAsyncHandler(async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Video uploaded successfully",
-      videoId: videoId
+      videoId: videoId,
     });
-
   } catch (error) {
     console.error("Error uploading video:", error);
     res.status(500).json({
       success: false,
       message: "Error uploading video",
-      error: error.message
+      error: error.message,
     });
   }
 });

@@ -16,6 +16,7 @@ const {
 const { createLectureValidator } = require("../Resuble/LectureValidationError");
 const { uploadPDF } = require("../Utils/imagesHandler");
 const { UtilsValidator } = require("../Resuble/UtilsValidationError");
+const { createBunny } = require("../Service/BunnyService");
 
 const Routes = Router();
 
@@ -29,7 +30,8 @@ Routes.route("/")
     createLectures
   )
   .get(getLectures);
-Routes.route("/:id")
+Routes.route("/:id").post(  protect,
+  allowedTo("admin", "teacher"),createBunny)
   .get(UtilsValidator, getLecture)
   .put(
     protect,

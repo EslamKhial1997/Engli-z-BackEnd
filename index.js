@@ -16,7 +16,18 @@ const cookieParser = require("cookie-parser");
 const dbCollection = require("./config/config");
 const globalError = require("./Middleware/globalError");
 const ApiError = require("./Resuble/ApiErrors");
-
+const app = express();
+app.use(cors({
+  origin: 'http://localhost:3000', // السماح بالطلبات من React
+  credentials: true // لتمكين الكوكيز
+}));
+app.use((req, res, next) => {
+  console.log('Setting CORS headers');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 // Route Imports
 const RoutesUsers = require("./Routes/RoutesUsers");
 const RoutesTransactions = require("./Routes/RoutesTransaction");
@@ -40,15 +51,15 @@ const RoutesCash = require("./Routes/RoutesCash");
 
 // Initial Configurations
 dotenv.config({ path: "config.env" });
-const app = express();
+
 const uploadsPath = path.join(__dirname, "../uploads");
 const PORT = process.env.PORT || 3002;
 
 // Middleware
-app.use(express.json({ limit: "50kb" }));
-app.use(cors());
+app.use(express.json({ limit: "50kb" })); 
+
 app.use(hpp());
-app.use(express.static(path.join(__dirname, "../build")));
+// app.use(express.static(path.join(__dirname, "../build")));
 app.use(express.static(uploadsPath));
 app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
@@ -75,13 +86,6 @@ createFirstManagerAccount();
 createFirstTeacher();
 createFirstPricing();
 
-// CORS Headers Setup
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "*");
-  next();
-});
-
 // Routes
 app.use("/", RoutesGoogleAuth);
 app.use("/api/v1/auth", RoutesAuth);
@@ -91,7 +95,6 @@ app.use("/api/v1/teacher", RoutesTeachers);
 app.use("/api/v1/class", RoutesClasses);
 app.use("/api/v1/section", RoutesSections);
 app.use("/api/v1/lecture", RoutesLectures);
-app.use("/video", RoutesVideo);
 app.use("/api/v1/coupon", RoutesCoupons);
 app.use("/api/v1/coures", RoutesCouress);
 app.use("/api/v1/slider", RoutesSliders);

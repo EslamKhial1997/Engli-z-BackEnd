@@ -1,8 +1,7 @@
 const express = require("express");
-const cookieParser = require("cookie-parser");
 const { createBunny } = require("../Service/BunnyService");
+const { protect, allowedTo } = require("../Service/AuthService");
 const Routes = express.Router();
-Routes.use(cookieParser());
-Routes.get("/:id", createBunny);
+Routes.route("/:id").post(protect, allowedTo("teacher", "admin"), createBunny);
 
 module.exports = Routes;
