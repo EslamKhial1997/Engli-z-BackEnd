@@ -6,7 +6,7 @@ const createUsersModel = require("../Modules/createUsers");
 const { UploadSingleImage } = require("../Middleware/UploadImageMiddleware");
 const fs = require("fs");
 const createPackageModel = require("../Modules/createPackage");
-const { sanitizegetMe } = require("../Utils/sanitize");
+const ApiError = require("../Resuble/ApiErrors");
 
 exports.uploadImage = UploadSingleImage("image");
 exports.fsRemove = async (filePath) => {
@@ -58,13 +58,16 @@ exports.createUsers = expressAsyncHandler(async (req, res) => {
 });
 
 exports.getMe = expressAsyncHandler(async (req, res, next) => {
-  let getMeData = await createUsersModel.findById(req.user._id);
-  if (!getMeData)
-    next(
+  let getMeData = await req.model.findById(req.user._id);
+  if (!getMeData) {
+    // إذا لم يتم العثور على البيانات، يتم استدعاء next مع خطأ
+    return next(
       new ApiError(`Sorry Can't get This ID From ID :${req.params.id}`, 404)
     );
-  return res.status(200).json({ data: sanitizegetMe(getMeData) });
+  }
+  return res.status(200).json({ data: getMeData });
 });
+
 exports.getUsers = factory.getAll(createUsersModel);
 
 exports.getUser = factory.getOne(createUsersModel);

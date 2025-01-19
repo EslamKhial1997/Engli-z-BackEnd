@@ -252,8 +252,6 @@ exports.allowedTo = (...roles) =>
 
 exports.protect = expressAsyncHandler(async (req, res, next) => {
   const token = req.cookies.accessToken;
-
-  // استخراج التوكن من الهيدر
   if (!token) {
     return res.status(401).json({
       statusCode: "Error",
@@ -312,7 +310,6 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
         msg: "تم رفض الوصول. ليس لديك الإذن للقيام بهذا الإجراء.",
       });
     }
-
     req.user = currentUser;
     next();
   } catch (error) {

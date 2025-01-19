@@ -24,14 +24,13 @@ passport.use(
         });
 
         if (!user) {
-          // إنشاء مستخدم جديد مع حفظ IP
           user = await createUsersModel
             .create({
               googleId: profile.id,
               email: profile.emails[0].value,
               name: profile.name.givenName,
               image: profile.photos[0].value,
-              ip: clientIp, // تخزين IP
+              ip: clientIp,
             })
             .then(() => {
               res.redirect("/dashboard");
