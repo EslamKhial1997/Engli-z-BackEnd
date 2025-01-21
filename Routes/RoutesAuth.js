@@ -6,6 +6,7 @@ const {
   forgetPassword,
   restNewPassword,
   verifyEmail,
+  signOut,
   
 } = require("../Service/AuthService");
 require("../config/googleAuth");
@@ -24,6 +25,7 @@ Routes.route("/signup").post(
 
 // مسار تسجيل الدخول
 Routes.route("/login").post(limiter, LoginValidator, Login);
+Routes.route("/signout").get(signOut);
 
 Routes.post("/forgetPassword", limiter, forgetPassword);
 

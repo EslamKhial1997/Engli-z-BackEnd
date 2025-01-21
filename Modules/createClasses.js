@@ -4,17 +4,11 @@ const createClass = new mongoose.Schema(
   {
     name: {
       type: "string",
-      required: [true, "معرف الصف مطلوب"],
-    },
-    grade: {
-      type: String,
-      enum: ["first", "second", "third"],
-      default: "first",
+      required: [true, "اسم الصف مطلوب"],
     },
     image: {
       type: String,
     },
-   
   },
   { timestamps: true }
 );

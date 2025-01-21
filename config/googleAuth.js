@@ -51,7 +51,9 @@ passport.use(
             { new: true }
           );
         }
-        req.session.isNewUser = isNewUser;
+        console.log(req.session.isNewUser);
+        
+         req.session.isNewUser = isNewUser;
         return done(null, user);
       } catch (err) {
         return done(err, null);

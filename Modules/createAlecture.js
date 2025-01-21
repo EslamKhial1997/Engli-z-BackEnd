@@ -10,7 +10,7 @@ const createLectures = new mongoose.Schema(
       default: 0,
       required: [true, "سعر المحاضرة مطلوب"],
     },
-    
+
     video: {
       type: Boolean,
       default: false,
@@ -19,11 +19,10 @@ const createLectures = new mongoose.Schema(
       type: String,
     },
     bunny: {
-      guid: String,
-      dateUploaded:String,
-      views:Number,
-      averageWatchTime:Number,
-      totalWatchTime:Number
+      dateUploaded: String,
+      views: Number,
+      averageWatchTime: Number,
+      totalWatchTime: Number,
     },
 
     pdf: {
@@ -55,7 +54,6 @@ createLectures.pre(/^find/, function (next) {
 
   next();
 });
-
 
 const ImageURL = (doc) => {
   if (doc.pdf && !doc.pdf.includes(`${process.env.BASE_URL}/lecture`)) {

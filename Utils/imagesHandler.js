@@ -77,9 +77,10 @@ exports.filePathImage = (fileName, relativePathImage) => {
 
   const filePath = path.join(
     __dirname,
-    `../uploads/${fileName}/`,
+    `../../uploads/${fileName}/`,
     relativePathImage
   );
+  console.log(filePath);
 
   exports.fsRemove(filePath);
 };

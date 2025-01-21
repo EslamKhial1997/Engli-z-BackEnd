@@ -8,11 +8,16 @@ const dotenv = require("dotenv");
 dotenv.config({ path: "config.env" });
 const Routes = express.Router();
 
-// const generateToken = (userId) => {
-//   return jwt.sign({ userId }, process.env.DB_URL, {
-//     expiresIn: "365d", // تعيين صلاحية التوكن
-//   });
-// };
+const generateToken = (userId) => {
+  return jwt.sign({ userId }, process.env.DB_URL, {
+    expiresIn: "365d", // تعيين صلاحية التوكن
+  });
+};
+const generaterefreshToken = (userId) => {
+  return jwt.sign({ userId }, process.env.DB_URL, {
+    expiresIn: "365d", // تعيين صلاحية التوكن
+  });
+};
 
 Routes.use(cookieParser());
 
@@ -29,23 +34,24 @@ Routes.get(
 
   (req, res) => {
     try {
-      const accessToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
-        expiresIn: "1d", // صلاحية الـ accessToken 5 دقائق
+      const token = generateToken(req.user._id);
+      const refresh = generaterefreshToken(req.user._id);
+
+      res.cookie("accessToken", token, {
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60 * 1000,
       });
-      const refreshToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
-        expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
+      res.cookie("refreshToken", refresh, {
+        path: "/",
+      
       });
-      res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: true,
-      }); // 5 دقائق
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: true,
-      }); // 24 ساعة
       if (req.session.isNewUser) {
+        console.log("yes");
+        
         res.redirect("/completeData");
       } else {
+        console.log("no");
+        
         res.redirect("/");
       }
     } catch (err) {

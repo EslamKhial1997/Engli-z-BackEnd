@@ -17,19 +17,23 @@ const MulterOptions = () => {
 const MulterOptionsPDF = () => {
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, '../uploads/lecture'); // تحديد مكان حفظ الملفات
+      cb(null, "../uploads/lecture"); // تحديد مكان حفظ الملفات
     },
     filename: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(
+        null,
+        file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+      );
+      // ensureUploadDirExists("lecture")
+    },
   });
 
   const fileFilter = function (req, file, cb) {
-    if (file.mimetype === 'application/pdf') {
+    if (file.mimetype === "application/pdf") {
       cb(null, true);
     } else {
-      cb(new Error('File type not allowed. Please upload a PDF file.'), false);
+      cb(new Error("File type not allowed. Please upload a PDF file."), false);
     }
   };
 
@@ -43,4 +47,5 @@ const MulterOptionsPDF = () => {
 exports.UploadSingleImage = (ImageName) => MulterOptions().single(ImageName);
 
 exports.UploadSinglePDF = (pdf) => MulterOptionsPDF().single(pdf);
-exports.UploadMultiImage = (ArrOfImage) => MulterOptions("data").fields(ArrOfImage);
+exports.UploadMultiImage = (ArrOfImage) =>
+  MulterOptions("data").fields(ArrOfImage);

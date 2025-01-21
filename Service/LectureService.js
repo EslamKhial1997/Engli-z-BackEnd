@@ -40,16 +40,14 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
       );
     }
 
-   
-
     const newLecture = new createLecturesModel({
       ...req.body,
     });
 
     await newLecture.save();
     const populatedLecture = await newLecture.populate({
-      path: "section", 
-      select: "name description", 
+      path: "section",
+      select: "name description",
     });
     const users = await createUsersModel.find({
       grade: populatedLecture.section.class._id,
@@ -68,10 +66,8 @@ exports.createLectures = expressAsyncHandler(async (req, res, next) => {
       })
     );
 
-  
     res.status(201).json({ status: "Success", data: populatedLecture });
   } catch (error) {
-
     next(
       new ApiError("حدث خطأ أثناء إنشاء المحاضرة. يرجى المحاولة لاحقًا.", 500)
     );
@@ -91,7 +87,7 @@ exports.getLectures = expressAsyncHandler(async (req, res) => {
       req.query
     )
       .Fillter(createLecturesModel)
-      .Sort(req.query.sort="-createdAt")
+      .Sort((req.query.sort = "-createdAt"))
       .Fields()
       .Search()
       .Paginate(countDocs);
@@ -227,15 +223,25 @@ exports.deleteVideo = expressAsyncHandler(async (req, res, next) => {
   const findDocument = await createLecturesModel.findById(req.params.id);
   const package = await createPackageModel.findOne();
   try {
-    await axios.delete(
-      `https://video.bunnycdn.com/library/${package.libraryID}/videos/${findDocument.guid}`,
-      {
-        headers: {
-          accept: "application/json",
-          AccessKey: package.apiKey,
-        },
-      }
-    );
+    await axios
+      .delete(
+        `https://video.bunnycdn.com/library/${package.libraryID}/videos/${findDocument.guid}`,
+        {
+          headers: {
+            accept: "application/json",
+            AccessKey: package.apiKey,
+          },
+        }
+      )
+      .then(async (res) => {
+        await createLecturesModel.findByIdAndUpdate(
+          req.params.id,
+          {
+            $unset: { guid: "" },
+          },
+          { new: true }
+        );
+      });
     res.status(200).json({ status: " Success", msg: "تم حذف الفيديو بنجاح" });
   } catch (error) {
     return next(new ApiError("خطأ في سيرفر الفيديوهات أثناء الحذف", 500));
@@ -319,7 +325,7 @@ exports.getVideo = expressAsyncHandler(async (req, res, next) => {
             ? "تم حل الامتحان"
             : "لم يتم حل الامتحان",
       },
-      pdf:findDocument.pdf
+      pdf: findDocument.pdf,
     });
   } catch (error) {
     return next(new ApiError("خطأ في سيرفر الفيديوهات أثناء الحذف", 500));

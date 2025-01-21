@@ -8,121 +8,125 @@ const createTransactionModel = require("../Modules/createtransaction");
 const { default: mongoose } = require("mongoose");
 const createTeachersModel = require("../Modules/createTeacher");
 const createPackageModel = require("../Modules/createPackage");
+const { default: axios } = require("axios");
 exports.createCoures = expressAsyncHandler(async (req, res, next) => {
-  const clientIp =
-    req.ip ||
-    req.headers["x-forwarded-for"]?.split(",").shift() ||
-    req.connection.remoteAddress;
-  const session = await mongoose.startSession();
-  session.startTransaction(); // بدء المعاملة
-  const package = await createPackageModel.findOne();
- 
-  
- 
-  if (
-    package.pricing.upload <= package.usedStorage ||
-    package.pricing.traffic <= package.usedTraffic
-  ) {
-    return res.status(404).json({
-      status: "Failure",
-      msg: "لا يمكن شراء اي محاضرة في الوقت الحالي",
-    });
-  }
-
+  let session;
   try {
-    const teacher = await createTeachersModel.findOne();
-    if (teacher.active === false) {
-      await createCouponsModel.findOneAndUpdate(
-        {
-          code: req.body.coupon,
-        },
-        { $set: { locked: false } }
-      );
-      throw new Error("اذا استمرت المشكله يرجي التواصل مع المدرس");
+    const teacher = await createTeachersModel.findOne({}, "active");
+    if (!teacher || teacher.active === false) {
+      return res.status(401).json({
+        msg: "لا يمكن شراء أي محاضرة في الوقت الحالي ",
+      });
     }
-    const lactureModel = await createLecturesModel.findById(req.body.lacture);
-    // التحقق من وجود كوبون
-    const couponModel = await createCouponsModel.findOne({
-      code: req.body.coupon,
-    });
-    let couresExist = await createCouresModel.find({
+
+    const clientIp =
+      req.ip || req.headers["x-forwarded-for"]?.split(",").shift();
+    session = await mongoose.startSession();
+    session.startTransaction(); // بدء المعاملة
+
+    const package = await createPackageModel.findOne();
+    const bunnyResponse = await axios.get(
+      `https://api.bunny.net/videolibrary/${package.libraryID}`,
+      {
+        headers: {
+          accept: "application/json",
+          AccessKey: package.token,
+        },
+      }
+    );
+
+    if (
+      !bunnyResponse ||
+      Math.floor(bunnyResponse.data.StorageUsage / (1000 * 1000)) >=
+        package.pricing.upload
+    ) {
+      return res.status(403).json({
+        msg: "لا يمكن شراء أي محاضرة في الوقت الحالي",
+      });
+    }
+
+    await createPackageModel.findByIdAndUpdate(
+      package._id,
+      {
+        $set: {
+          usedStorage: Math.floor(bunny.data.StorageUsage / (1000 * 1000)),
+          usedTraffic: Math.floor(
+            bunnyResponse.data.TrafficUsage / (1000 * 1000)
+          ),
+        },
+      },
+      { new: true }
+    );
+
+    const [couponModel, lactureModel] = await Promise.all([
+      createCouponsModel.findOneAndUpdate(
+        { code: req.body.coupon },
+        { $set: { locked: false } }
+      ),
+      createLecturesModel.findById(req.body.lacture),
+    ]);
+
+    if (!lactureModel) {
+      return res.status(404).json({
+        status: "Failure",
+        msg: "المحاضرة غير موجودة",
+      });
+    }
+
+    const couresExist = await createCouresModel.find({
       user: req.user._id,
-      couresItems: {
-        $elemMatch: { lacture: req.body.lacture },
+      couresItems: { $elemMatch: { lacture: req.body.lacture } },
+    });
+
+    if (couresExist.length > 0) {
+      return res.status(400).json({
+        status: "Failure",
+        msg: "المحاضرة موجودة من قبل",
+      });
+    }
+
+    const userExists = await createCouresModel.findOne({ user: req.user._id });
+    let coures;
+
+    const newCourseItem = {
+      lacture: req.body.lacture,
+      coupon: couponModel?.code,
+      expires: couponModel?.expires,
+      seen: lactureModel?.seen,
+      ip: clientIp,
+    };
+
+    if (userExists) {
+      userExists.couresItems.push(newCourseItem);
+      await userExists.save();
+    } else {
+      coures = await createCouresModel.create({
+        user: req.user._id,
+        couresItems: [newCourseItem],
+      });
+    }
+
+    await createTransactionModel.create({
+      user: req.user._id,
+      lecture: lactureModel,
+      coupon: {
+        code: couponModel?.code,
+        createBy: couponModel?.createdBy,
       },
     });
 
-    if (lactureModel) {
-      if (couresExist.length > 0) {
-        await createCouponsModel.findOneAndUpdate(
-          {
-            code: req.body.coupon,
-          },
-          { $set: { locked: false } }
-        );
-        return res.status(404).json({
-          status: "Failure",
-          msg: "المحاضره موجوده من قبل",
-        });
-      }
-      const userExists = await createCouresModel.findOne({
-        user: req.user._id,
-      });
-
-      await createCouponsModel.findOneAndUpdate(
-        {
-          code: req.body.coupon,
-        },
-        { $set: { locked: false } }
-      );
-
-      if (userExists) {
-        coures = userExists.couresItems.push({
-          lacture: req.body.lacture,
-          coupon: couponModel?.code,
-          expires: couponModel?.expires,
-          seen: lactureModel?.seen,
-          ip: clientIp,
-        });
-        await userExists.save();
-      } else {
-        coures = await createCouresModel.create({
-          user: req.user._id,
-          couresItems: [
-            {
-              lacture: req.body.lacture,
-              coupon: couponModel?.code,
-              expires: couponModel?.expires,
-              seen: lactureModel?.seen,
-              ip: clientIp,
-            },
-          ],
-        });
-      }
-
-      const transaction = await createTransactionModel.create({
-        user: req.user._id,
-        lecture: lactureModel,
-        coupon: {
-          code: couponModel?.code,
-          createBy: couponModel?.createdBy,
-        },
-      });
-      transaction.save();
-      res.status(200).json({
-        status: "success",
-        msg: "تم شراء المحاضرة بنجاح",
-      });
-    }
-    await createCouponsModel.findOneAndDelete({
-      code: req.body.coupon,
-    });
+    await createCouponsModel.findOneAndDelete({ code: req.body.coupon });
     await session.commitTransaction();
+
+    res.status(200).json({
+      status: "success",
+      msg: "تم شراء المحاضرة بنجاح",
+    });
   } catch (error) {
-    await session.abortTransaction(); // إلغاء المعاملة عند حدوث خطأ
+    if (session) await session.abortTransaction();
     next(error);
   } finally {
-    session.endSession(); // إنهاء الجلسة
+    if (session) session.endSession();
   }
 });
 

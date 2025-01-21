@@ -46,7 +46,7 @@ exports.getSections = expressAsyncHandler(async (req, res) => {
   // إعداد ميزات الاستعلام
   const ApiFeatures = new FeatureApi(createSectionModel.find(filter), req.query)
     .Fillter(createSectionModel)
-    .Sort(req.query.sort="-createdAt")
+    .Sort((req.query.sort = "-createdAt"))
     .Fields()
     .Search()
     .Paginate(countDocs);

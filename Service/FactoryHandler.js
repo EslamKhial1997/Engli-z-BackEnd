@@ -175,12 +175,14 @@ exports.deleteOne = (Model, filePath) =>
       const imageKeys = ["image", "avater", "picture", "pdf"];
       for (const key of imageKeys) {
         if (findDocument[key]) {
+          
           const relativePathImage = findDocument[key].split(baseUrl)[1];
+          
           filePathImage(filePath, relativePathImage); // حذف الصورة القديمة
         }
       }
 
-      res.status(200).json({ status: "Delete Is Success" });
+      res.status(200).json({ msg: "تم حذف الفصل والمحاضرات المرتبطة به" });
     } catch (error) {
       next(error);
     }

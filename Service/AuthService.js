@@ -163,7 +163,7 @@ exports.Login = expressAsyncHandler(async (req, res, next) => {
     }); // 24 ساعة
     return res
       .status(200)
-      .json({ token: accessToken, refreshToken: refreshToken , data:user });
+      .json({ token: accessToken, refreshToken: refreshToken, data: user });
   }
 
   // التحقق من المعلم
@@ -184,7 +184,7 @@ exports.Login = expressAsyncHandler(async (req, res, next) => {
     }); // 24 ساعة
     return res
       .status(200)
-      .json({ token: accessToken, refreshToken: refreshToken ,data:user });
+      .json({ token: accessToken, refreshToken: refreshToken, data: teacher });
   }
 
   // في حالة فشل تسجيل الدخول
@@ -302,7 +302,7 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
       currentUser.role === "manager"
     ) {
       req.model = createUsersModel;
-    } else if (currentUser.role === "teacher") { 
+    } else if (currentUser.role === "teacher") {
       req.model = createTeachersModel;
     } else {
       return res.status(403).json({
@@ -423,3 +423,26 @@ exports.restNewPassword = (UserPassword) =>
       .status(200)
       .json({ status: "success", msg: "تم تغيير الرقم السري بنجاح" });
   });
+exports.signOut = expressAsyncHandler((req, res) => {
+  try {
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: true,
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+    });
+
+    req.session &&
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ error: "حدث خطأ أثناء تسجيل الخروج" });
+        }
+      });
+
+    return res.status(200).json({ message: "تم تسجيل الخروج بنجاح" });
+  } catch (error) {
+    return res.status(500).json({ error: "حدث خطأ أثناء تسجيل الخروج" });
+  }
+});

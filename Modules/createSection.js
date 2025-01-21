@@ -23,7 +23,7 @@ const createSection = new mongoose.Schema(
 createSection.pre(/^find/, function (next) {
   this.populate({
     path: "class",
-    select: "name  grade",
+    select: "name",
   });
   next();
 });
