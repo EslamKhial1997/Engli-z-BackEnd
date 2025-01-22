@@ -11,7 +11,7 @@ const createTeachersModel = require("../Modules/createTeacher");
 exports.createCourseValidator = [
   // التحقق من المحاضرة إن وجدت
   check("lacture")
-    .optional()
+    .notEmpty()
     .custom(async (val, { req }) => {
       const lectureModel = await createLecturesModel.findOne({
         _id: req.body.lacture,
@@ -21,7 +21,7 @@ exports.createCourseValidator = [
       }
     }),
   check("coupon")
-    .optional()
+    .notEmpty().withMessage("الكوبون مطلوب")
     .custom(async (val, { req }) => {
       const coupon = await createCouponsModel.findOneAndUpdate(
         {
@@ -40,41 +40,6 @@ exports.createCourseValidator = [
       }
     }),
 
-  // التحقق من الباب (القسم) إن وجد
-  // check("section")
-  //   .optional()
-  //   .custom(async (val, { req }) => {
-  //     const sectionModel = await createSectionModel.findOne({
-  //       _id: req.body.section,
-  //     });
-  //     if (!sectionModel) {
-  //       return Promise.reject(new Error(`الباب غير موجود`));
-  //     }
 
-  //     // التحقق مما إذا كان الكوبون ينتمي لهذا القسم
-
-  //     if (req.couponModel && !req.couponModel.section) {
-  //       if (
-  //         !req.couponModel.section ||
-  //         (req.couponModel.section &&
-  //           req.couponModel.section._id.toString() !== req.body.section &&
-  //           val !== req.body.section)
-  //       ) {
-  //         return Promise.reject(
-  //           new Error(`الكوبون ${req.body.coupon} لا ينتمي لهذا الباب`)
-  //         );
-  //       }
-  //     }
-  //     const teacher = await createTeachersModel.findOne();
-
-  //     if (teacher.active === false) {
-  //       throw new Error("Teacher not found");
-  //     }
-
-  //     // يمكنك إضافة شروط إضافية هنا إذا لزم الأمر
-  //     console.log("Teacher info:", teacher);
-  //     return true;
-  //   }),
-
-  MiddlewareValidator, // استدعاء المدقق الوسيط للتحقق من الأخطاء
+  MiddlewareValidator, 
 ];

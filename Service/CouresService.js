@@ -12,6 +12,11 @@ const { default: axios } = require("axios");
 exports.createCoures = expressAsyncHandler(async (req, res, next) => {
   let session;
   try {
+    if (req.user.active !== "active") {
+      return res.status(401).json({
+        msg: "الحساب غير نشط ولايمكن شراء المحاضرة",
+      });
+    }
     const teacher = await createTeachersModel.findOne({}, "active");
     if (!teacher || teacher.active === false) {
       return res.status(401).json({
@@ -19,7 +24,7 @@ exports.createCoures = expressAsyncHandler(async (req, res, next) => {
       });
     }
 
-    const clientIp =
+    const clientIp = 
       req.ip || req.headers["x-forwarded-for"]?.split(",").shift();
     session = await mongoose.startSession();
     session.startTransaction(); // بدء المعاملة
@@ -49,7 +54,9 @@ exports.createCoures = expressAsyncHandler(async (req, res, next) => {
       package._id,
       {
         $set: {
-          usedStorage: Math.floor(bunny.data.StorageUsage / (1000 * 1000)),
+          usedStorage: Math.floor(
+            bunnyResponse.data.StorageUsage / (1000 * 1000)
+          ),
           usedTraffic: Math.floor(
             bunnyResponse.data.TrafficUsage / (1000 * 1000)
           ),

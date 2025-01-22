@@ -257,12 +257,7 @@ exports.getVideo = expressAsyncHandler(async (req, res, next) => {
 
   const package = await createPackageModel.findOne();
   if (package.usedTraffic >= package.pricing.traffic) {
-    return next(
-      new ApiError(
-        "تم الوصول للحد الأقصى من المساحة المتاحة للمحاضرات. للمزيد من التفاصيل يرجى التواصل مع الدعم الفني.",
-        404
-      )
-    );
+    return next(new ApiError("لايمكن مشاهدةه المحاضره في الوقت الحالي", 404));
   }
   const myCourses = await createCouresModel.findOne(
     {
@@ -281,15 +276,6 @@ exports.getVideo = expressAsyncHandler(async (req, res, next) => {
   }
 
   try {
-    const response = await axios.get(
-      `https://video.bunnycdn.com/library/${package.libraryID}/videos/${findDocument.guid}/play`,
-      {
-        headers: {
-          accept: "application/json",
-          AccessKey: package.apiKey,
-        },
-      }
-    );
     const myQuiz = await createQuizModel.findOne(
       {
         lecture: req.params.id,
@@ -299,18 +285,26 @@ exports.getVideo = expressAsyncHandler(async (req, res, next) => {
         "results.$": 1,
       }
     );
-    const concatenatedString =
-      package.apiKey + response.data.video.guid + 7200000;
 
-    const hash = crypto
-      .createHash("sha256")
-      .update(concatenatedString)
-      .digest("hex");
+    const generateSignedUrl = (baseUrl, securityKey, expirationTime) => {
+      const expires = Math.floor(Date.now() / 1000) + expirationTime;
+      const urlObject = new URL(baseUrl);
+      const path = urlObject.pathname;
+
+      const hash = crypto
+        .createHmac("sha256", securityKey)
+        .update(`${path}${expires}`)
+        .digest("hex");
+
+      return `${baseUrl}?token=${expires}_${hash}`;
+    };
+
+    const urlPath = `https://vz-d63e45c4-507.b-cdn.net/${findDocument.guid}/playlist.m3u8`;
+    const signedUrl = generateSignedUrl(urlPath, package.apiKey, 3600);
+
     res.status(200).json({
       status: " Success",
-      data: `${package.libraryID}/${
-        response.data.video.guid
-      }?token=${hash}&expires=${7200000}`,
+      data: signedUrl,
       quiz: {
         quiz: findDocument.quiz ? true : false,
         msg: findDocument.quiz
