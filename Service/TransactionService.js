@@ -235,12 +235,18 @@ exports.getTotalTransactions = expressAsyncHandler(async (req, res, next) => {
       },
       bunny: {
         totalvideos: bunny?.VideoCount || 0,
-        StorageUsage: bunny
-          ? (bunny.StorageUsage / (1000 * 1000)).toFixed(1) + " MB"
-          : "0 MB",
-        TrafficUsage: bunny
-          ? (bunny.TrafficUsage / (1000 * 1000)).toFixed(1) + " MB"
-          : "0 MB",
+        StorageUsage:{
+          used:bunny
+          ? Number((bunny.StorageUsage / (1000 * 1000)).toFixed(1))
+          : 0,
+          total: package.pricing.upload
+        } ,
+        TrafficUsage:{
+          used: bunny
+          ? Number((bunny.TrafficUsage / (1000 * 1000)).toFixed(1))
+          : 0,
+          total: package.pricing.traffic
+        }
       },
       couresItems: {
         totalCouresItems,

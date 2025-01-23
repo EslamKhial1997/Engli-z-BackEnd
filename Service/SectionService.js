@@ -58,10 +58,9 @@ exports.getSections = expressAsyncHandler(async (req, res) => {
       const lectures = await createLecturesModel
         .find({ section: ele._id })
         .lean();
-      const pdf = lectures.map((lecture) => lecture.pdf).length;
-      const quiz = lectures.map((lecture) => lecture.quiz).length;
-      const video = lectures.map((lecture) => lecture.bunny).length;
-
+      const pdf = lectures.filter((lecture) => lecture.pdf).length;
+      const quiz = lectures.filter((lecture) => lecture.quiz).length;
+      const video = lectures.filter((lecture) => lecture.video === true).length;
       return {
         ...ele,
         lecture: {
@@ -89,9 +88,9 @@ exports.getSection = expressAsyncHandler(async (req, res, next) => {
       new ApiError(`Sorry Can't get This ID From ID :${req.params.id}`, 404)
     );
   const lectures = await createLecturesModel.find({ section: section._id });
-  const pdf = lectures.map((lecture) => lecture.pdf).length;
-  const quiz = lectures.map((lecture) => lecture.quiz).length;
-  const video = lectures.map((lecture) => lecture.bunny).length;
+  const pdf = lectures.filter((lecture) => lecture.pdf).length;
+  const quiz = lectures.filter((lecture) => lecture.quiz).length;
+  const video = lectures.filter((lecture) => lecture.video).length;
   res.status(200).json({
     data: section,
     lecture: {

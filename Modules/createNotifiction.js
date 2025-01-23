@@ -14,7 +14,6 @@ const createNotifications = new mongoose.Schema(
     },
     msg: String,
 
-    // بيانات الإشعار حسب النوع
     studentSignup: {
       studentName: String,
       studentEmail: String,

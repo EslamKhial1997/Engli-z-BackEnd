@@ -78,6 +78,8 @@ createLectures.pre("findOneAndDelete", async function (next) {
   );
   await mongoose.model("Quiz").deleteMany({ lecture: lectureId });
   await mongoose.model("Coupons").deleteMany({ lecture: lectureId });
+  await mongoose.model("Transactions").deleteMany({ lecture: lectureId });
+  await mongoose.model("Quiz").deleteMany({ lecture: lectureId });
   next();
 });
 

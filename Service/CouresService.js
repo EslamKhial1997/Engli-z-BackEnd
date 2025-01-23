@@ -99,11 +99,13 @@ exports.createCoures = expressAsyncHandler(async (req, res, next) => {
       lacture: req.body.lacture,
       coupon: couponModel?.code,
       expires: couponModel?.expires,
-      seen: lactureModel?.seen,
+      seen: couponModel?.seen,
       ip: clientIp,
     };
 
     if (userExists) {
+  
+      
       userExists.couresItems.push(newCourseItem);
       await userExists.save();
     } else {
