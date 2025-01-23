@@ -36,10 +36,6 @@ exports.getMyNotifications = expressAsyncHandler(async (req, res, next) => {
     const { MongooseQueryApi, PaginateResult } = ApiFeatures;
     const getDoc = await MongooseQueryApi;
 
-    if (getDoc.length === 0) {
-      return res.status(404).json({ message: "لا توجد إشعارات" });
-    }
-
     res.status(200).json({
       message: "تم جلب الإشعارات بنجاح",
       total: countDocs,

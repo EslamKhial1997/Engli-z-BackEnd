@@ -67,10 +67,6 @@ exports.getOneCourse = (Model, populateOpt) =>
         },
         { new: true }
       ).exec();
-
-      if (!query) {
-        return res.status(404).json({ msg: "لايوجد محاضرات متاحة لك" });
-      }
       let updatedCourse = await query;
 
       updatedCourse = await Model.findById(updatedCourse._id);
@@ -175,9 +171,8 @@ exports.deleteOne = (Model, filePath) =>
       const imageKeys = ["image", "avater", "picture", "pdf"];
       for (const key of imageKeys) {
         if (findDocument[key]) {
-          
           const relativePathImage = findDocument[key].split(baseUrl)[1];
-          
+
           filePathImage(filePath, relativePathImage); // حذف الصورة القديمة
         }
       }

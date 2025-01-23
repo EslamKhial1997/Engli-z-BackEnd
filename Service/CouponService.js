@@ -18,11 +18,15 @@ exports.createCoupon = expressAsyncHandler(async (req, res) => {
     }
 
     const coupons = [];
-    const expirationDate = new Date(new Date().getTime() + expires * 24 * 60 * 60 * 1000);
+    const expirationDate = new Date(
+      new Date().getTime() + expires * 24 * 60 * 60 * 1000
+    );
 
     // إنشاء الأكواد
     for (let i = 0; i < count; i++) {
-      const code = Math.floor(1000000000 + Math.random() * 9000000000).toString(); // توليد كود مكون من 10 أرقام
+      const code = Math.floor(
+        1000000000 + Math.random() * 9000000000
+      ).toString(); // توليد كود مكون من 10 أرقام
       coupons.push({
         code,
         expires: expirationDate,
@@ -36,10 +40,14 @@ exports.createCoupon = expressAsyncHandler(async (req, res) => {
     const insertedCoupons = await createCouponsModel.insertMany(coupons);
 
     // استخدام populate لجلب بيانات المحاضرة
-    const populatedCoupons = await createCouponsModel.find({
-      _id: { $in: insertedCoupons.map((coupon) => coupon._id) },
-    }).populate("lecture");
-
+    const populatedCoupons = await createCouponsModel
+      .find({
+        _id: { $in: insertedCoupons.map((coupon) => coupon._id) },
+      })
+      .populate("lecture");
+    await createTotalsModel.create({
+      totalCouponsPrinted: populatedCoupons.length,
+    });
     res.status(201).json({ status: "Success", data: populatedCoupons });
   } catch (error) {
     console.error(error);
