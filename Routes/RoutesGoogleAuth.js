@@ -10,12 +10,12 @@ const Routes = express.Router();
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.DB_URL, {
-    expiresIn: "365d", // تعيين صلاحية التوكن
+    expiresIn: "7d",
   });
 };
 const generaterefreshToken = (userId) => {
   return jwt.sign({ userId }, process.env.DB_URL, {
-    expiresIn: "365d", // تعيين صلاحية التوكن
+    expiresIn: "90d", // تعيين صلاحية التوكن
   });
 };
 
@@ -29,7 +29,7 @@ Routes.get(
 Routes.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "https://www.engli-z.com/login",
+    failureRedirect: "/",
   }),
 
   (req, res) => {
@@ -43,17 +43,7 @@ Routes.get(
       });
       res.cookie("refreshToken", refresh, {
         path: "/",
-      
       });
-      if (req.session.isNewUser) {
-        console.log("yes");
-        
-        res.redirect("/completeData");
-      } else {
-        console.log("no");
-        
-        res.redirect("/");
-      }
     } catch (err) {
       res.status(500).json({ error: "حدث خطأ في الاتصال" });
     }

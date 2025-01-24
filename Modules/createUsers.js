@@ -42,7 +42,6 @@ const createUsers = new mongoose.Schema(
       default: "inactive",
     },
     verificationToken: String,
-    ip: String,
     googleId: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }

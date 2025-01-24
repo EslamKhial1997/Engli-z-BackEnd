@@ -2,13 +2,11 @@ const expressAsyncHandler = require("express-async-handler");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
-
 const ApiError = require("../Resuble/ApiErrors");
 const createUsersModel = require("../Modules/createUsers");
 const createTeachersModel = require("../Modules/createTeacher");
 const createNotificationsModel = require("../Modules/createNotifiction");
 const sendVerificationEmail = require("../Utils/SendCodeEmail");
-const { sanitizeSignUp } = require("../Utils/sanitize");
 
 exports.createFirstManagerAccount = async () => {
   const existingManager = await createUsersModel.findOne({
@@ -111,87 +109,114 @@ const Token = () =>
         { userId: user.userId },
         process.env.DB_URL,
         {
-          expiresIn: "1d",
+          expiresIn: "7d",
         }
       );
 
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: true,
-      }); // 5 دقا
+      });
     });
   });
+
 exports.Login = expressAsyncHandler(async (req, res, next) => {
-  const clientIp = req.ip || req.headers["x-forwarded-for"]?.split(",").shift();
+  try {
+    const { email, password } = req.body;
 
-  let user = null;
-  let teacher = null;
+    let user = await createUsersModel.findOne({
+      $or: [{ email }, { phone: email }],
+    });
 
-  // تحقق من بيانات المستخدم
-  if (req.body.password) {
-    user = await createUsersModel.findOne({ email: req.body.email });
-  } else {
-    user = await createUsersModel.findOne({
-      $or: [{ email: req.body.email }, { phone: req.body.email }],
+    let teacher = await createTeachersModel.findOne({
+      $or: [{ email }, { phone: email }],
+    });
+
+    if (user?.password) {
+      if (await bcrypt.compare(password, user.password)) {
+        const accessToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
+          expiresIn: "7d",
+        });
+        const refreshToken = jwt.sign(
+          { userId: user._id },
+          process.env.DB_URL,
+          {
+            expiresIn: "90d",
+          }
+        );
+
+        res.cookie("accessToken", accessToken, {
+          httpOnly: true,
+          secure: true,
+        });
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: true,
+        });
+
+        return res.status(200).json({
+          token: accessToken,
+          refreshToken: refreshToken,
+          data: user,
+        });
+      } else {
+        return res.status(403).json({
+          status: "Error",
+          msg: "اسم المستخدم او كلمة السر خطأ",
+        });
+      }
+    }
+    if (teacher?.password) {
+      if (await bcrypt.compare(password, teacher.password)) {
+        const accessToken = jwt.sign(
+          { userId: teacher._id },
+          process.env.DB_URL,
+          {
+            expiresIn: "7d",
+          }
+        );
+        const refreshToken = jwt.sign(
+          { userId: teacher._id },
+          process.env.DB_URL,
+          {
+            expiresIn: "90d",
+          }
+        );
+
+        res.cookie("accessToken", accessToken, {
+          httpOnly: true,
+          secure: true,
+        });
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: true,
+        });
+
+        return res.status(200).json({
+          token: accessToken,
+          refreshToken: refreshToken,
+          data: teacher,
+        });
+      } else {
+        // إذا كانت كلمة المرور غير صحيحة
+        return res.status(403).json({
+          status: "Error",
+          msg: "اسم المستخدم او كلمة السر خطأ",
+        });
+      }
+    }
+
+    // إذا لم يتم العثور على المستخدم أو المعلم
+    return res.status(403).json({
+      status: "Error",
+      msg: "يمكنك تسجيل الدخول عن طريق جوجل فقط",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "Error",
+      msg: "حدث خطأ في السيرفر",
     });
   }
-
-  // تحقق من بيانات المعلم
-  teacher = await createTeachersModel.findOne({
-    $or: [{ email: req.body.email }, { phone: req.body.email }],
-  });
-
-  // التحقق من المستخدم
-  if (user && (await bcrypt.compare(req.body.password, user.password))) {
-    user.ip = clientIp;
-    await user.save();
-
-    // إنشاء accessToken و refreshToken للمستخدم
-    const accessToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
-      expiresIn: "1d", // صلاحية الـ accessToken 5 دقائق
-    });
-    const refreshToken = jwt.sign({ userId: user._id }, process.env.DB_URL, {
-      expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
-    });
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: true,
-    }); // 5 دقائق
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-    }); // 24 ساعة
-    return res
-      .status(200)
-      .json({ token: accessToken, refreshToken: refreshToken, data: user });
-  }
-
-  // التحقق من المعلم
-  if (teacher && (await bcrypt.compare(req.body.password, teacher.password))) {
-    const accessToken = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
-      expiresIn: "1d", // صلاحية الـ accessToken 5 دقائق
-    });
-    const refreshToken = jwt.sign({ userId: teacher._id }, process.env.DB_URL, {
-      expiresIn: "7d", // صلاحية الـ refreshToken 7 أيام
-    });
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: true,
-    }); // 5 دقائق
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-    }); // 24 ساعة
-    return res
-      .status(200)
-      .json({ token: accessToken, refreshToken: refreshToken, data: teacher });
-  }
-
-  // في حالة فشل تسجيل الدخول
-  return res.status(500).json({
-    status: "Error",
-    msg: "خطأ في اسم المستخدم أو كلمة المرور",
-  });
 });
 
 exports.findOrCreateGoogleUser = async (googleProfile) => {
@@ -260,7 +285,6 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
   }
 
   try {
-    // التحقق من صحة التوكن
     const decoded = jwt.verify(token, process.env.DB_URL);
     if (!decoded) {
       return res.status(401).json({
@@ -268,8 +292,6 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
         msg: "الرمز غير صالح. يرجى تسجيل الدخول مرة أخرى.",
       });
     }
-
-    // العثور على المستخدم بناءً على الـID المستخرج من التوكن
     const currentUser =
       (await createUsersModel.findById(decoded.userId)) ||
       (await createTeachersModel.findById(decoded.userId));
@@ -280,8 +302,6 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
         msg: "المستخدم غير موجود",
       });
     }
-
-    // التحقق مما إذا قام المستخدم بتغيير كلمة المرور بعد إصدار التوكن
     if (currentUser.passwordChangedAt) {
       const passChangedTimestamp = parseInt(
         currentUser.passwordChangedAt.getTime() / 1000,
@@ -295,7 +315,6 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
       }
     }
 
-    // تحديد الدور وتعيين النموذج المناسب
     if (
       currentUser.role === "user" ||
       currentUser.role === "admin" ||
@@ -313,7 +332,6 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
     req.user = currentUser;
     next();
   } catch (error) {
-    // التحقق من نوع الخطأ وتخصيص الرسالة
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         statusCode: "Error",

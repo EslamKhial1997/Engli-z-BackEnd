@@ -24,7 +24,7 @@ exports.createCoures = expressAsyncHandler(async (req, res, next) => {
       });
     }
 
-    const clientIp = 
+    const clientIp =
       req.ip || req.headers["x-forwarded-for"]?.split(",").shift();
     session = await mongoose.startSession();
     session.startTransaction(); // بدء المعاملة
@@ -104,8 +104,6 @@ exports.createCoures = expressAsyncHandler(async (req, res, next) => {
     };
 
     if (userExists) {
-  
-      
       userExists.couresItems.push(newCourseItem);
       await userExists.save();
     } else {

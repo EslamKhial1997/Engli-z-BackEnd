@@ -34,7 +34,7 @@ exports.createUsers = expressAsyncHandler(async (req, res) => {
       .find({ role: "admin" })
       .countDocuments();
     if (package.pricing.assistant <= admin) {
-      return res.status(200).json({
+      return res.status(500).json({
         status: "Error",
         msg: ` لايمكن انشاء اكتر من ${package.pricing.assistant} ادمن  بناءا علي خطتك الحالية`,
       });

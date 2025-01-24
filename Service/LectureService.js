@@ -271,7 +271,7 @@ exports.getVideo = expressAsyncHandler(async (req, res, next) => {
   if (!myCourses || myCourses.couresItems.length === 0) {
     return next(new ApiError("لم يتم شراء المحاضرة", 404));
   }
-  if (req.user.ip !== myCourses.couresItems[0].ip) {
+  if (req.headers["x-forwarded-for"] !== myCourses.couresItems[0].ip) {
     return next(new ApiError("لم يتم شراء المحاضرة من هذا الجهاز", 404));
   }
 

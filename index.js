@@ -59,7 +59,7 @@ const PORT = process.env.PORT || 3002;
 app.use(express.json({ limit: "50kb" })); 
 
 app.use(hpp());
-// app.use(express.static(path.join(__dirname, "../build")));
+//app.use(express.static(path.join(__dirname, "../build")));
 app.use(express.static(uploadsPath));
 app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
 app.use(passport.initialize());

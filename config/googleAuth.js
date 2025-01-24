@@ -16,8 +16,7 @@ passport.use(
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
-        const clientIp =
-          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+       
         // البحث عن المستخدم
         let user = await createUsersModel.findOne({
           $or: [{ googleId: profile.id }, { email: profile.emails[0].value }],
@@ -30,7 +29,7 @@ passport.use(
               email: profile.emails[0].value,
               name: profile.name.givenName,
               image: profile.photos[0].value,
-              ip: clientIp,
+            
             })
             .then(() => {
               res.redirect("/dashboard");
@@ -43,17 +42,10 @@ passport.use(
               studentEmail: profile.emails[0].value,
             },
           });
-        } else {
-          // تحديث IP إذا كان المستخدم موجودًا
-          await createUsersModel.findOneAndUpdate(
-            { _id: user._id },
-            { ip: clientIp },
-            { new: true }
-          );
+          req.session.isNewUser = true;
         }
-        console.log(req.session.isNewUser);
         
-         req.session.isNewUser = isNewUser;
+         req.session.isNewUser = false;
         return done(null, user);
       } catch (err) {
         return done(err, null);
