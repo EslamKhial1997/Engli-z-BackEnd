@@ -29,21 +29,26 @@ Routes.get(
 Routes.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/",
+    failureRedirect: "https://www.engli-z.com/login",
   }),
 
   (req, res) => {
     try {
       const token = generateToken(req.user._id);
       const refresh = generaterefreshToken(req.user._id);
-
+      console.log(token)
       res.cookie("accessToken", token, {
-        path: "/",
-        maxAge: 365 * 24 * 60 * 60 * 1000,
+        path: "/", 
+        httpOnly: true,
+
       });
       res.cookie("refreshToken", refresh, {
-        path: "/",
+        path: "/", 
+        httpOnly: true,
+
       });
+            res.redirect("https://www.engli-z.com");
+
     } catch (err) {
       res.status(500).json({ error: "حدث خطأ في الاتصال" });
     }

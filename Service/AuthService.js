@@ -391,12 +391,11 @@ exports.forgetPassword = expressAsyncHandler(async (req, res, next) => {
     await target.save();
 
     // إرسال البريد الإلكتروني مع التوكن
-    await sendVerificationEmail(target.email, tokenVerify, target.firstName);
+    await sendVerificationEmail(target.email, tokenVerify, target.name);
 
     // إرسال رد بالنجاح
     res.status(200).json({ status: "success", msg: "تم إرسال الرمز بنجاح" });
   } catch (error) {
-    // معالجة أي أخطاء غير متوقعة
     next(
       new ApiError(
         "حدث خطأ أثناء إرسال البريد الإلكتروني لإعادة تعيين كلمة المرور."
@@ -409,7 +408,6 @@ exports.restNewPassword = (UserPassword) =>
   expressAsyncHandler(async (req, res, next) => {
     const { setNewPassword } = req.body;
     const { id } = req.params;
-    console.log(req.params.id);
 
     const user = await createUsersModel.findOne({ verificationToken: id });
 
@@ -428,18 +426,7 @@ exports.restNewPassword = (UserPassword) =>
     }
     target.verificationToken = undefined;
     await target.save();
-
-    // 5) إنشاء وإرجاع رمز JWT إذا كانت العملية تتعلق بكلمة المرور
-    if (UserPassword === "password") {
-      const token = jwt.sign({ userId: target._id }, process.env.DB_URL, {
-        expiresIn: "360d",
-      });
-      return res.status(200).json({ token });
-    }
-
-    res
-      .status(200)
-      .json({ status: "success", msg: "تم تغيير الرقم السري بنجاح" });
+    return res.redirect("/login");
   });
 exports.signOut = expressAsyncHandler((req, res) => {
   try {

@@ -66,7 +66,15 @@ exports.getOneCourse = (Model, populateOpt) =>
           },
         },
         { new: true }
-      ).exec();
+      );
+
+      if (!query) {
+        res.status(200).json({
+          status: "success",
+          totalCoursses: 0,
+          data:[],
+        });      }
+
       let updatedCourse = await query;
 
       updatedCourse = await Model.findById(updatedCourse._id);
@@ -81,6 +89,7 @@ exports.getOneCourse = (Model, populateOpt) =>
         data: updatedCourse.couresItems,
       });
     } catch (error) {
+
       res.status(401).json({
         status: "Error",
         msg: "حدث خطأ ما",

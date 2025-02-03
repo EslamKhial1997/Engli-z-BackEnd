@@ -24,8 +24,7 @@ exports.createCoures = expressAsyncHandler(async (req, res, next) => {
       });
     }
 
-    const clientIp =
-      req.ip || req.headers["x-forwarded-for"]?.split(",").shift();
+    const clientIp = req.headers["x-forwarded-for"]
     session = await mongoose.startSession();
     session.startTransaction(); // بدء المعاملة
 

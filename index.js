@@ -18,12 +18,12 @@ const globalError = require("./Middleware/globalError");
 const ApiError = require("./Resuble/ApiErrors");
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000', // السماح بالطلبات من React
+  origin: 'http://localhost:5173', // السماح بالطلبات من React
   credentials: true // لتمكين الكوكيز
 }));
 app.use((req, res, next) => {
   console.log('Setting CORS headers');
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
@@ -72,10 +72,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-// Database Connection
 dbCollection();
 
 // Initial Setup Tasks
@@ -109,7 +105,7 @@ app.use("/api/v1/cash", RoutesCash);
 // Fallback Route for Client-side
 app.get("*", (req, res) => {
   if (!req.originalUrl.startsWith("/api")) {
-    res.sendFile(path.join(__dirname, "../build", "index.html"));
+    res.sendFile(path.join(__dirname, "../dist", "index.html"));
   } else {
     res.status(404).json({ message: "API endpoint not found" });
   }

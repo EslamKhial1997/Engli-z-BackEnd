@@ -5,7 +5,7 @@
 /.pnp
 /.history
 .pnp.js
-/config.env
+config.env
 /DengaTech.json
 /teamSolution.json
 /youtube.json
